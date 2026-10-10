@@ -104,9 +104,7 @@ const Dashboard = () => {
                   <h2 className={masterDashboardCardHeading}>
                     Patients Registration
                   </h2>
-                  <p className={masterDashboardCardSubtext}>
-                    New OPD/IPD Patient Registry & Profiles
-                  </p>
+                 
                 </div>
               </button>
 
@@ -123,9 +121,7 @@ const Dashboard = () => {
                   <h2 className={masterDashboardCardHeading}>
                     Billing
                   </h2>
-                  <p className={masterDashboardCardSubtext}>
-                    Invoices, Receipts & Payments
-                  </p>
+                  
                 </div>
               </button>
 
@@ -142,9 +138,7 @@ const Dashboard = () => {
                   <h2 className={masterDashboardCardHeading}>
                     Admin Controller
                   </h2>
-                  <p className={masterDashboardCardSubtext}>
-                    Access Control, Roles & System Settings
-                  </p>
+                 
                 </div>
               </button>
 
