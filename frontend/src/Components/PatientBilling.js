@@ -478,6 +478,19 @@ const PatientsBilling = () => {
                           <td className="p-1.5 text-center flex justify-center gap-1.5">
                             <button
                               type="button"
+                              onClick={() => {
+                                setPrintingInvoice(bill);
+                                setTimeout(() => {
+                                  window.print();
+                                  setPrintingInvoice(null);
+                                }, 100);
+                              }}
+                              className="px-2 py-0.5 bg-emerald-100 text-emerald-700 rounded hover:bg-emerald-200 transition-colors inline-flex items-center gap-1 text-[11px] font-semibold cursor-pointer"
+                            >
+                              <Printer size={11} /> Print
+                            </button>
+                            <button
+                              type="button"
                               onClick={() => handleEditBill(bill)}
                               className="px-2 py-0.5 bg-sky-100 text-sky-700 rounded hover:bg-sky-200 transition-colors inline-flex items-center gap-1 text-[11px] font-semibold cursor-pointer"
                             >
@@ -814,7 +827,7 @@ const PatientsBilling = () => {
       <div id="printable-bill-section" className="hidden print:block font-sans text-[10px] text-black bg-white p-2 leading-tight">
         {/* Header Section */}
         <div className="text-center  mb-2">
-          <h1 className="font-extrabold text-sm tracking-wide uppercase">Kalyani NURSING HOME</h1>
+          <h1 className="font-bold text-sm tracking-wide uppercase">Kalyani NURSING HOME</h1>
           <p className="text-[9px] font-semibold">B-8/37, (C.A.), Kalyani, Nadia, * West Bengal * Pin - 741235</p>
           <p className="text-[9px] font-semibold">Contact Us : (033) 2582-8745</p>
           <div className="mt-1 inline-block font-bold  text-[10px]">
