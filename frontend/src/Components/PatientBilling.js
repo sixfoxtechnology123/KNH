@@ -1,0 +1,764 @@
+import React, { useState, useEffect, useRef } from "react";
+import { 
+  FileText, 
+  Home, 
+  Eye, 
+  Save, 
+  Printer, 
+  RotateCcw, 
+  Plus, 
+  Trash2, 
+  Loader2,
+  Search,
+  ArrowLeft,
+  Edit,
+  Check
+} from "lucide-react";
+import toast from "react-hot-toast";
+import { api } from "../api/api";
+
+import {
+  masterPrimaryButton,
+  masterAccentButton,
+  masterInputLabel,
+  masterInput,
+} from "../GlobalComponent/masterPageStyles";
+
+const PatientsBilling = () => {
+  const [saving, setSaving] = useState(false);
+  const [patients, setPatients] = useState([]);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [filteredPatients, setFilteredPatients] = useState([]);
+  const [showDropdown, setShowDropdown] = useState(false);
+
+  // View Bill Table States
+  const [viewMode, setViewMode] = useState(false);
+  const [savedBills, setSavedBills] = useState([]);
+  const [loadingBills, setLoadingBills] = useState(false);
+  const [editingBillId, setEditingBillId] = useState(null);
+
+  const searchRef = useRef(null);
+
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (searchRef.current && !searchRef.current.contains(event.target)) {
+        setShowDropdown(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, []);
+
+  const getCurrentISTDate = () => {
+    const now = new Date();
+    const formatter = new Intl.DateTimeFormat('en-CA', {
+      timeZone: 'Asia/Kolkata',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit'
+    });
+    
+    const parts = formatter.formatToParts(now);
+    const dateObj = {};
+    parts.forEach(({ type, value }) => {
+      dateObj[type] = value;
+    });
+
+    return `${dateObj.year}-${dateObj.month}-${dateObj.day}`;
+  };
+
+  const [billingData, setBillingData] = useState({
+    patientId: "",
+    patientMongoId: "",
+    fullName: "",
+    mobileNumber: "",
+    gender: "",
+    regNo: "",
+    age: "",
+    drName: "",
+    address: "",
+    admissionDate: "",
+    dischargeDate: "",
+    billDate: getCurrentISTDate(),
+    cabinNo: "",
+    wardNo: "",
+    discount: "",
+    advanced: "",
+    returnAmount: "",
+  });
+
+  const [items, setItems] = useState([
+    { id: 1, description: "", rate: "", unit: "", amount: "" }
+  ]);
+
+  useEffect(() => {
+    fetchPatients();
+  }, []);
+
+  const fetchPatients = async () => {
+    try {
+      const response = await api.get('/hms/patients/all');
+      if (response.data.success) {
+        setPatients(response.data.data || []);
+      }
+    } catch (error) {
+      console.error("Error fetching patients:", error);
+      toast.error("Failed to load patient directory.");
+    }
+  };
+
+  const fetchSavedBills = async () => {
+    setLoadingBills(true);
+    try {
+      const response = await api.get('/hms/billing/all');
+      if (response.data.success) {
+        setSavedBills(response.data.data || []);
+      }
+    } catch (error) {
+      console.error("Error fetching saved bills:", error);
+      toast.error("Failed to load bills table.");
+    } finally {
+      setLoadingBills(false);
+    }
+  };
+
+  useEffect(() => {
+    if (!searchTerm.trim()) {
+      setFilteredPatients(patients);
+    } else {
+      const term = searchTerm.toLowerCase();
+      const results = patients.filter(p => 
+        (p.fullName && p.fullName.toLowerCase().includes(term)) ||
+        (p.patientId && p.patientId.toLowerCase().includes(term)) ||
+        (p.mobileNumber && p.mobileNumber.includes(term))
+      );
+      setFilteredPatients(results);
+    }
+  }, [searchTerm, patients]);
+
+  const handleSelectPatient = (patient) => {
+    const vill = patient.villageTown || patient.villTown || "";
+    const po = patient.postOffice || patient.po || "";
+    const ps = patient.policeStation || patient.ps || "";
+    const dist = patient.district || "";
+    const state = patient.stateName || patient.state || "";
+    const pin = patient.pinCode || patient.pin || "";
+
+    const fullAddress = [vill, po, ps, dist, state, pin].filter(Boolean).join(", ");
+    const formattedName = `${patient.namePrefix || ""} ${patient.fullName || ""}`.trim();
+
+    setBillingData(prev => ({
+      ...prev,
+      patientId: patient.patientId || "",
+      patientMongoId: patient._id || "",
+      fullName: formattedName,
+      mobileNumber: patient.mobileNumber || "",
+      gender: patient.gender || "",
+      age: patient.age || "",
+      address: fullAddress || "",
+    }));
+
+    setSearchTerm(formattedName);
+    setShowDropdown(false);
+  };
+
+  const handleHeaderChange = (e) => {
+    const { name, value } = e.target;
+    // Prevent negative numbers for numeric inputs
+    if (["discount", "advanced", "returnAmount"].includes(name) && value !== "" && parseFloat(value) < 0) {
+      return;
+    }
+    setBillingData(prev => ({ ...prev, [name]: value }));
+  };
+
+  const handleItemChange = (id, field, value) => {
+    // Prevent negative numbers for rate and unit
+    if ((field === "rate" || field === "unit") && value !== "" && parseFloat(value) < 0) {
+      return;
+    }
+
+    setItems(prevItems =>
+      prevItems.map(item => {
+        if (item.id === id) {
+          const updatedItem = { ...item, [field]: value };
+          if (field === "rate" || field === "unit") {
+            const rate = parseFloat(field === "rate" ? value : item.rate) || 0;
+            const unit = parseFloat(field === "unit" ? value : item.unit) || 0;
+            updatedItem.amount = (value === "" && (field === "rate" ? item.rate === "" : item.unit === "")) ? "" : rate * unit;
+          }
+          return updatedItem;
+        }
+        return item;
+      })
+    );
+  };
+
+  const handleAddItem = () => {
+    setItems(prev => [
+      ...prev, 
+      { id: Date.now(), description: "", rate: "", unit: "", amount: "" }
+    ]);
+  };
+
+  const handleRemoveItem = (id) => {
+    if (items.length === 1) {
+      toast.error("At least one billing item is required.", { id: 'avail-qty-err' });
+      return;
+    }
+    setItems(prev => prev.filter(item => item.id !== id));
+  };
+
+  // Financial Calculations
+  const subTotal = items.reduce((acc, curr) => acc + (parseFloat(curr.amount) || 0), 0);
+  const discountVal = parseFloat(billingData.discount) || 0;
+  const netAmount = Math.max(0, subTotal - discountVal);
+  const advancedVal = parseFloat(billingData.advanced) || 0;
+  const returnVal = parseFloat(billingData.returnAmount) || 0;
+
+  // Commonsense logic: if advanced > netAmount, balance due is 0 and excess automatically adds to return amount
+  let balanceAmount = 0;
+  let computedReturnAmount = returnVal;
+  if (advancedVal > netAmount) {
+    balanceAmount = 0;
+    computedReturnAmount = (advancedVal - netAmount) + returnVal;
+  } else {
+    balanceAmount = netAmount - advancedVal + returnVal;
+  }
+
+  const handleSubmit = async (e, shouldPrint = false) => {
+    if (e) e.preventDefault();
+    if (!billingData.patientId) {
+      toast.error("Please select a valid patient.", { id: 'avail-qty-err' });
+      return;
+    }
+
+    setSaving(true);
+    try {
+      const payload = {
+        ...billingData,
+        discount: billingData.discount === "" ? 0 : discountVal,
+        advanced: billingData.advanced === "" ? 0 : advancedVal,
+        returnAmount: advancedVal > netAmount ? computedReturnAmount : (billingData.returnAmount === "" ? 0 : returnVal),
+        items,
+        subTotal,
+        netAmount,
+        balanceAmount,
+      };
+
+      let response;
+      if (editingBillId) {
+        response = await api.put(`/hms/billing/update/${editingBillId}`, payload);
+      } else {
+        response = await api.post('/hms/billing/create', payload);
+      }
+
+      if (response.data.success) {
+        const billRef = response.data.data?.billNo || response.data.billNo || 'Generated';
+        toast.success(editingBillId ? `Bill updated successfully! (${billRef})` : `Billing saved successfully! Bill ID: ${billRef}`);
+        
+        if (shouldPrint) {
+          window.print();
+        }
+
+        handleReset();
+      } else {
+        toast.error("Failed to save billing record.", { id: 'avail-qty-err' });
+      }
+    } catch (error) {
+      console.error("Billing save error:", error);
+      toast.error(error.response?.data?.message || "Server communication error.", { id: 'avail-qty-err' });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleEditBill = (bill) => {
+    setEditingBillId(bill._id);
+    setSearchTerm(bill.fullName || "");
+    setBillingData({
+      patientId: bill.patientId || "",
+      patientMongoId: bill.patientMongoId || "",
+      fullName: bill.fullName || "",
+      mobileNumber: bill.mobileNumber || "",
+      gender: bill.gender || "",
+      regNo: bill.regNo || "",
+      age: bill.age || "",
+      drName: bill.drName || "",
+      address: bill.address || "",
+      admissionDate: bill.admissionDate || "",
+      dischargeDate: bill.dischargeDate || "",
+      billDate: bill.billDate || getCurrentISTDate(),
+      cabinNo: bill.cabinNo || "",
+      wardNo: bill.wardNo || "",
+      discount: bill.discount || "",
+      advanced: bill.advanced || "",
+      returnAmount: bill.returnAmount || "",
+    });
+    setItems(bill.items && bill.items.length > 0 ? bill.items : [{ id: 1, description: "", rate: "", unit: "", amount: "" }]);
+    setViewMode(false);
+  };
+
+  const handleDeleteBill = async (id) => {
+    if (!window.confirm("Are you sure you want to delete this bill?")) return;
+    try {
+      const response = await api.delete(`/hms/billing/delete/${id}`);
+      if (response.data.success) {
+        toast.success("Bill deleted successfully.");
+        fetchSavedBills();
+      }
+    } catch (error) {
+      console.error("Error deleting bill:", error);
+      toast.error("Failed to delete bill.");
+    }
+  };
+
+  const handleReset = () => {
+    setSearchTerm("");
+    setEditingBillId(null);
+    setBillingData({
+      patientId: "",
+      patientMongoId: "",
+      fullName: "",
+      mobileNumber: "",
+      gender: "",
+      regNo: "",
+      age: "",
+      drName: "",
+      address: "",
+      admissionDate: "",
+      dischargeDate: "",
+      billDate: getCurrentISTDate(),
+      cabinNo: "",
+      wardNo: "",
+      discount: "",
+      advanced: "",
+      returnAmount: "",
+    });
+    setItems([{ id: 1, description: "", rate: "", unit: "", amount: "" }]);
+  };
+
+  return (
+    <div className="w-full min-h-screen bg-[#f0f6fa] flex flex-col font-sans text-xs">
+      
+      {/* Header Bar */}
+      <header className="w-full bg-[#0a2540] text-white px-3 py-2 flex items-center justify-between shadow-sm shrink-0">
+        <div className="flex items-center gap-2">
+          <div className="p-1 bg-[#00b4d8] text-white rounded-md flex items-center justify-center">
+            <FileText size={15} />
+          </div>
+          <h1 className="text-xs font-bold tracking-wider">Patient Billing & Invoice</h1>
+        </div>
+
+        <div className="flex items-center gap-1.5">
+          <button
+            type="button"
+            onClick={() => {
+              if (viewMode) {
+                setViewMode(false);
+              } else {
+                setViewMode(true);
+                fetchSavedBills();
+              }
+            }}
+            className="inline-flex items-center gap-1 bg-slate-700 text-white px-2.5 py-1 rounded-md text-xs font-semibold hover:bg-slate-600 transition-all cursor-pointer shadow-sm"
+          >
+            {viewMode ? <ArrowLeft size={13} /> : <Eye size={13} />} 
+            {viewMode ? "Back to Form" : "View Bill"}
+          </button>
+
+          <button
+            type="button"
+            onClick={() => window.location.href = "/"}
+            className="inline-flex items-center gap-1.5 bg-[#00b4d8] text-white px-2.5 py-1 rounded-md text-xs font-semibold hover:bg-[#0096c7] transition-all cursor-pointer shadow-sm"
+          >
+            <Home size={13} /> Home
+          </button>
+        </div>
+      </header>
+
+      {/* Main Content Area */}
+      <main className="w-full flex-1 p-2 flex flex-col">
+        <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-2.5 space-y-2 w-full">
+          
+          {viewMode ? (
+            /* SAVED BILLS TABLE VIEW */
+            <div className="space-y-2">
+              <div className="bg-[#00b4d8] text-white px-2.5 py-1.5 rounded-md flex items-center justify-between font-bold text-xs shadow-sm">
+                <span>Saved Bills Directory</span>
+                <span className="text-[11px] font-normal">Total Records: {savedBills.length}</span>
+              </div>
+
+              {loadingBills ? (
+                <div className="flex justify-center items-center py-12 text-slate-500 gap-2">
+                  <Loader2 className="animate-spin" size={20} /> Loading bills...
+                </div>
+              ) : savedBills.length === 0 ? (
+                <div className="text-center py-10 text-slate-400 text-xs">
+                  No saved bills found. Create a new bill and save it to view it here.
+                </div>
+              ) : (
+                <div className="border border-slate-200 rounded-md overflow-x-auto bg-slate-50/50 p-1">
+                  <table className="w-full text-left border-collapse">
+                    <thead>
+                      <tr className="bg-slate-200 text-slate-700 text-center text-[11px] font-bold">
+                        <th className="p-1.5">Bill ID</th>
+                        <th className="p-1.5">Date</th>
+                        <th className="p-1.5 text-left">Patient Name</th>
+                        <th className="p-1.5">Phone</th>
+                        <th className="p-1.5 text-right">Net Amount</th>
+                        {/* <th className="p-1.5 text-right">Balance Due</th> */}
+                        <th className="p-1.5 text-center">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {savedBills.map((bill) => (
+                        <tr key={bill._id} className="bg-white border-b border-slate-100 hover:bg-slate-50">
+                          <td className="p-1.5 text-center font-bold text-sky-700">{bill.billNo}</td>
+                          <td className="p-1.5 text-center text-slate-600">{bill.billDate}</td>
+                          <td className="p-1.5 font-medium text-slate-800">{bill.fullName}</td>
+                          <td className="p-1.5 text-center text-slate-600">{bill.mobileNumber || "N/A"}</td>
+                          <td className="p-1.5 text-right font-semibold text-slate-800">₹ {(bill.netAmount || 0).toFixed(2)}</td>
+                          {/* <td className="p-1.5 text-right font-bold text-rose-600">₹ {(bill.balanceAmount || 0).toFixed(2)}</td> */}
+                          <td className="p-1.5 text-center flex justify-center gap-1.5">
+                            <button
+                              type="button"
+                              onClick={() => handleEditBill(bill)}
+                              className="px-2 py-0.5 bg-sky-100 text-sky-700 rounded hover:bg-sky-200 transition-colors inline-flex items-center gap-1 text-[11px] font-semibold cursor-pointer"
+                            >
+                              <Edit size={11} /> Edit
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleDeleteBill(bill._id)}
+                              className="px-2 py-0.5 bg-rose-100 text-rose-600 rounded hover:bg-rose-200 transition-colors inline-flex items-center gap-1 text-[11px] font-semibold cursor-pointer"
+                            >
+                              <Trash2 size={11} /> Delete
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+          ) : (
+            /* BILLING FORM VIEW */
+            <form onSubmit={(e) => handleSubmit(e, false)} className="space-y-2 text-xs">
+              
+              {editingBillId && (
+                <div className="bg-amber-100 border border-amber-300 text-amber-800 px-3 py-1 rounded flex justify-between items-center text-xs font-semibold">
+                  <span>Editing Mode Active (Updating existing bill record)</span>
+                  <button type="button" onClick={handleReset} className="underline text-amber-900 cursor-pointer">Cancel Edit</button>
+                </div>
+              )}
+
+              {/* SECTION 1: Patient Search & Header Details */}
+              <div className="space-y-1">
+                <div className="bg-[#00b4d8] text-white px-2.5 py-1 rounded-t-md flex items-center gap-1.5 font-bold text-xs shadow-sm">
+                  <Search size={13} /> Patient & Admission Details
+                </div>
+
+                <div className="p-2">
+                  <div className="grid grid-cols-1 sm:grid-cols-6 gap-1.5 relative">
+                    
+                    {/* Patients Name / Search Field with Ref for Click Outside */}
+                    <div className="sm:col-span-1 relative" ref={searchRef}>
+                      <label className={masterInputLabel}>Patients Name</label>
+                      <div className="relative">
+                        <input 
+                          type="text" 
+                          value={searchTerm}
+                          onChange={(e) => {
+                            setSearchTerm(e.target.value);
+                            setShowDropdown(true);
+                          }}
+                          onFocus={() => setShowDropdown(true)}
+                          placeholder="Type name, ID or phone..."
+                          className={masterInput + " py-1 h-7 pr-7 w-full"}
+                        />
+                        <Search className="absolute right-2 top-2 text-slate-400 pointer-events-none" size={13} />
+                      </div>
+
+                      {showDropdown && filteredPatients.length > 0 && (
+                        <div className="absolute z-50 left-0 mt-1 w-full min-w-[280px] bg-white border border-slate-300 rounded-md shadow-lg max-h-60 overflow-y-auto">
+                          {filteredPatients.map(p => (
+                            <div 
+                              key={p._id}
+                              onClick={() => handleSelectPatient(p)}
+                              className="px-2.5 py-1.5 hover:bg-sky-50 cursor-pointer border-b border-slate-100 flex justify-between items-center text-[11px]"
+                            >
+                              <span className="font-bold text-sky-700">{p.patientId}</span>
+                              <span className="text-slate-800 font-medium">{p.namePrefix} {p.fullName}</span>
+                              <span className="text-slate-500">Ph: {p.mobileNumber}</span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="sm:col-span-1">
+                      <label className={masterInputLabel}>Patient ID</label>
+                      <input type="text" name="patientId" value={billingData.patientId} readOnly placeholder="Auto" className={masterInput + " py-1 h-7 bg-slate-100 font-bold text-sky-700"} />
+                    </div>
+
+                    <div className="sm:col-span-1">
+                      <label className={masterInputLabel}>Mobile Number</label>
+                      <input type="text" name="mobileNumber" value={billingData.mobileNumber} readOnly placeholder="Mobile No" className={masterInput + " py-1 h-7 bg-slate-100 font-semibold"} />
+                    </div>
+
+                    <div className="sm:col-span-1">
+                      <label className={masterInputLabel}>Gender</label>
+                      <input type="text" name="gender" value={billingData.gender} readOnly placeholder="Auto" className={masterInput + " py-1 h-7 bg-slate-100 font-semibold"} />
+                    </div>
+
+                    <div className="sm:col-span-1">
+                      <label className={masterInputLabel}>Reg No</label>
+                      <input type="text" name="regNo" value={billingData.regNo} onChange={handleHeaderChange} placeholder="Reg No" className={masterInput + " py-1 h-7"} />
+                    </div>
+
+                    <div className="sm:col-span-1">
+                      <label className={masterInputLabel}>Age</label>
+                      <input type="text" name="age" value={billingData.age} readOnly placeholder="Auto" className={masterInput + " py-1 h-7 bg-slate-100"} />
+                    </div>
+
+                    <div className="sm:col-span-1">
+                      <label className={masterInputLabel}>Dr. Name</label>
+                      <input type="text" name="drName" value={billingData.drName} onChange={handleHeaderChange} placeholder="Doctor Name" className={masterInput + " py-1 h-7"} />
+                    </div>
+
+                    <div className="sm:col-span-1">
+                      <label className={masterInputLabel}>Cabin No</label>
+                      <input type="text" name="cabinNo" value={billingData.cabinNo} onChange={handleHeaderChange} placeholder="Cabin No" className={masterInput + " py-1 h-7"} />
+                    </div>
+
+                    <div className="sm:col-span-1">
+                      <label className={masterInputLabel}>Ward No</label>
+                      <input type="text" name="wardNo" value={billingData.wardNo} onChange={handleHeaderChange} placeholder="Ward No" className={masterInput + " py-1 h-7"} />
+                    </div>
+
+                    <div className="sm:col-span-1">
+                      <label className={masterInputLabel}>Admission Date</label>
+                      <input type="date" name="admissionDate" value={billingData.admissionDate} onChange={handleHeaderChange} className={masterInput + " py-1 h-7"} />
+                    </div>
+
+                    <div className="sm:col-span-1">
+                      <label className={masterInputLabel}>Discharge Date</label>
+                      <input type="date" name="dischargeDate" value={billingData.dischargeDate} onChange={handleHeaderChange} className={masterInput + " py-1 h-7"} />
+                    </div>
+
+                    <div className="sm:col-span-1">
+                      <label className={masterInputLabel}>Bill Date</label>
+                      <input type="date" name="billDate" value={billingData.billDate} onChange={handleHeaderChange} className={masterInput + " py-1 h-7"} />
+                    </div>
+
+                    <div className="sm:col-span-6">
+                      <label className={masterInputLabel}>Address</label>
+                      <input type="text" name="address" value={billingData.address} readOnly placeholder="Auto-populated Full Address" className={masterInput + " py-1 h-7 bg-slate-100"} />
+                    </div>
+
+                  </div>
+                </div>
+              </div>
+
+              {/* SECTION 2 & 3: Description Section and Financial Summary */}
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-2">
+                
+                {/* Left 2/3: Description Items Table */}
+                <div className="lg:col-span-2 space-y-1">
+                  <div className="bg-[#00b4d8] text-white px-2.5 py-1 rounded-t-md flex items-center justify-between font-bold text-xs shadow-sm">
+                    <span>Billing Particulars / Services</span>
+                    <button
+                      type="button"
+                      onClick={handleAddItem}
+                      className="inline-flex items-center gap-1 bg-white text-[#00b4d8] px-2 py-0.5 rounded text-[11px] font-bold hover:bg-slate-100 transition-all cursor-pointer shadow-sm"
+                    >
+                      <Plus size={12} /> Add Row
+                    </button>
+                  </div>
+
+                  <div className="border border-slate-200 rounded-b-md overflow-hidden bg-slate-50/50 p-1.5">
+                    <table className="w-full text-left border-collapse">
+                      <thead>
+                        <tr className="bg-slate-200 text-slate-700 text-center text-[11px] font-bold">
+                          <th className="p-1 w-10">#</th>
+                          <th className="p-1 text-left">Description</th>
+                          <th className="p-1 w-24">Rate</th>
+                          <th className="p-1 w-20">Unit</th>
+                          <th className="p-1 w-28">Amount</th>
+                          <th className="p-1 w-14 text-center">Action</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {items.map((item, index) => (
+                          <tr key={item.id} className="bg-white">
+                            <td className="p-1 text-center font-semibold text-slate-500">{index + 1}</td>
+                            <td className="p-1">
+                              <input 
+                                type="text" 
+                                value={item.description}
+                                onChange={(e) => handleItemChange(item.id, "description", e.target.value)}
+                                placeholder="Enter service description..."
+                                className={masterInput + " py-1 h-6 text-xs"}
+                              />
+                            </td>
+                            <td className="p-1">
+                              <input 
+                                type="number" 
+                                min="0"
+                                value={item.rate}
+                                onChange={(e) => handleItemChange(item.id, "rate", e.target.value)}
+                                placeholder=""
+                                className={masterInput + " py-1 h-6 text-right text-xs"}
+                              />
+                            </td>
+                            <td className="p-1">
+                              <input 
+                                type="number" 
+                                min="0"
+                                value={item.unit}
+                                onChange={(e) => handleItemChange(item.id, "unit", e.target.value)}
+                                placeholder=""
+                                className={masterInput + " py-1 h-6 text-right text-xs"}
+                              />
+                            </td>
+                            <td className="p-1">
+                              <input 
+                                type="number" 
+                                value={item.amount}
+                                readOnly
+                                placeholder=""
+                                className={masterInput + " py-1 h-6 text-right bg-slate-100 font-bold text-xs"}
+                              />
+                            </td>
+                            <td className="p-1 text-center">
+                              <button
+                                type="button"
+                                onClick={() => handleRemoveItem(item.id)}
+                                className="p-1 bg-rose-100 text-rose-600 rounded hover:bg-rose-200 transition-colors cursor-pointer inline-flex items-center justify-center"
+                              >
+                                <Trash2 size={12} />
+                              </button>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+
+                {/* Right 1/3: Financial Summary */}
+                <div className="lg:col-span-1 space-y-1">
+                  <div className="bg-[#00b4d8] text-white px-2.5 py-1 rounded-t-md font-bold text-xs shadow-sm">
+                    Financial Summary
+                  </div>
+
+                  <div className="bg-slate-50 border border-slate-200 rounded-b-md p-2.5 space-y-2">
+                    <div className="w-full space-y-1.5 bg-white p-2.5 rounded-md border border-slate-300 shadow-sm">
+                      <div className="flex justify-between items-center text-slate-600 font-medium">
+                        <span>Sub Total:</span>
+                        <span className="font-bold text-slate-800">₹ {subTotal.toFixed(2)}</span>
+                      </div>
+
+                      <div className="flex justify-between items-center">
+                        <span className="text-slate-600">Discount (-):</span>
+                        <input 
+                          type="number" 
+                          min="0"
+                          name="discount" 
+                          value={billingData.discount} 
+                          onChange={handleHeaderChange} 
+                          placeholder=""
+                          className="w-24 px-2 py-0.5 text-right border border-slate-300 rounded text-xs focus:ring-1 focus:ring-[#00b4d8]"
+                        />
+                      </div>
+
+                      <div className="flex justify-between items-center border-t pt-1 font-bold text-sky-700 text-xs">
+                        <span>Net Amount:</span>
+                        <span>₹ {netAmount.toFixed(2)}</span>
+                      </div>
+
+                      <div className="flex justify-between items-center">
+                        <span className="text-slate-600">Advanced Paid (-):</span>
+                        <input 
+                          type="number" 
+                          min="0"
+                          name="advanced" 
+                          value={billingData.advanced} 
+                          onChange={handleHeaderChange} 
+                          placeholder=""
+                          className="w-24 px-2 py-0.5 text-right border border-slate-300 rounded text-xs focus:ring-1 focus:ring-[#00b4d8]"
+                        />
+                      </div>
+
+                      <div className="flex justify-between items-center">
+                        <span className="text-slate-600">Return Amount (+):</span>
+                        <input 
+                          type="number" 
+                          min="0"
+                          name="returnAmount" 
+                          value={advancedVal > netAmount ? ((advancedVal - netAmount) + returnVal) : billingData.returnAmount} 
+                          onChange={handleHeaderChange} 
+                          placeholder=""
+                          className="w-24 px-2 py-0.5 text-right border border-slate-300 rounded text-xs focus:ring-1 focus:ring-[#00b4d8]"
+                        />
+                      </div>
+
+                      <div className={`flex justify-between items-center border-t-2 border-slate-300 pt-1 font-extrabold text-xs ${balanceAmount > 0 ? 'text-rose-600' : 'text-emerald-600'}`}>
+                        <span>Balance Due:</span>
+                        <span>₹ {balanceAmount.toFixed(2)}</span>
+                      </div>
+                    </div>
+
+                    <div className="text-slate-500 text-[11px] px-1">
+                      <p><strong>Total Items:</strong> {items.length}</p>
+                    </div>
+                  </div>
+                </div>
+
+              </div>
+
+              {/* Action Buttons */}
+              <div className="flex justify-end gap-2 pt-1">
+                <button 
+                  type="button" 
+                  onClick={handleReset} 
+                  disabled={saving}
+                  className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md border border-slate-300 text-xs font-semibold text-slate-600 hover:bg-slate-50 transition-all cursor-pointer disabled:opacity-50"
+                >
+                  <RotateCcw size={12} /> Reset
+                </button>
+
+                <button 
+                  type="button" 
+                  onClick={(e) => handleSubmit(e, false)} 
+                  disabled={saving}
+                  className={masterPrimaryButton + " inline-flex items-center gap-1.5 py-1 px-3 disabled:opacity-50"}
+                >
+                  {saving ? <Loader2 className="animate-spin" size={12} /> : (editingBillId ? <Check size={12} /> : <Save size={12} />)} 
+                  {saving ? "Saving..." : (editingBillId ? "Update Bill" : "Save")}
+                </button>
+
+                <button 
+                  type="button" 
+                  onClick={(e) => handleSubmit(e, true)} 
+                  disabled={saving}
+                  className={masterAccentButton + " inline-flex items-center gap-1.5 py-1 px-3 disabled:opacity-50"}
+                >
+                  {saving ? <Loader2 className="animate-spin" size={12} /> : <Printer size={12} />} 
+                  {saving ? "Processing..." : "Save & Print Bill"}
+                </button>
+              </div>
+
+            </form>
+          )}
+
+        </div>
+      </main>
+    </div>
+  );
+};
+
+export default PatientsBilling;

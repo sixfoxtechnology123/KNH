@@ -3,6 +3,7 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { Toaster } from "react-hot-toast";
 import Dashboard from "./Components/Dashboard";
 import PatientsRegt from "./Components/PatientsReg";
+import PatientsBilling from "./Components/PatientBilling";
 
 function App() {
   return (
@@ -69,6 +70,7 @@ function App() {
         <Routes>
           <Route path="/" element={<Dashboard />} />
           <Route path="/patients-registration" element={<PatientsRegt />} />
+          <Route path="/patients-billing" element={<PatientsBilling />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </div>

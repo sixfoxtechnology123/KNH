@@ -111,7 +111,7 @@ const Dashboard = () => {
               {/* 2. Billing */}
               <button
                 type="button"
-                onClick={() => openModule("/billing", "billing")}
+                onClick={() => openModule("/patients-billing", "billing")}
                 className={masterDashboardCardButton}
               >
                 <div className={masterDashboardIconBilling}>
