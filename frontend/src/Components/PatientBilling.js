@@ -193,7 +193,7 @@ const PatientsBilling = () => {
 
     setItems(prevItems =>
       prevItems.map(item => {
-        if (item.id === id) {
+        if (item.id === id || item._id === id) {
           const updatedItem = { ...item, [field]: value };
           if (field === "rate" || field === "unit") {
             const rate = parseFloat(field === "rate" ? value : item.rate) || 0;
@@ -328,7 +328,11 @@ const PatientsBilling = () => {
       advanced: bill.advanced || "",
       returnAmount: bill.returnAmount || "",
     });
-    setItems(bill.items && bill.items.length > 0 ? bill.items : [{ id: 1, description: "", rate: "", unit: "", amount: "" }]);
+    setItems(
+  bill.items && bill.items.length > 0 
+    ? bill.items.map((i, index) => ({ ...i, id: i._id || i.id || Date.now() + index })) 
+    : [{ id: Date.now(), description: "", rate: "", unit: "", amount: "" }]
+);
     setViewMode(false);
   };
 
