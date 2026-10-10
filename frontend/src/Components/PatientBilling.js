@@ -24,6 +24,19 @@ import {
   masterInput,
 } from "../GlobalComponent/masterPageStyles";
 
+
+const formatDateToDMY = (dateStr) => {
+  if (!dateStr) return '-';
+  const parts = dateStr.split('-');
+  if (parts.length === 3) {
+    // If format is YYYY-MM-DD
+    if (parts[0].length === 4) {
+      return `${parts[2]}-${parts[1]}-${parts[0]}`;
+    }
+  }
+  return dateStr;
+};
+
 const PatientsBilling = () => {
   const [saving, setSaving] = useState(false);
   const [patients, setPatients] = useState([]);
@@ -36,6 +49,7 @@ const PatientsBilling = () => {
   const [savedBills, setSavedBills] = useState([]);
   const [loadingBills, setLoadingBills] = useState(false);
   const [editingBillId, setEditingBillId] = useState(null);
+  const [printingInvoice, setPrintingInvoice] = useState(null);
 
   const searchRef = useRef(null);
 
@@ -166,7 +180,6 @@ const PatientsBilling = () => {
 
   const handleHeaderChange = (e) => {
     const { name, value } = e.target;
-    // Prevent negative numbers for numeric inputs
     if (["discount", "advanced", "returnAmount"].includes(name) && value !== "" && parseFloat(value) < 0) {
       return;
     }
@@ -174,7 +187,6 @@ const PatientsBilling = () => {
   };
 
   const handleItemChange = (id, field, value) => {
-    // Prevent negative numbers for rate and unit
     if ((field === "rate" || field === "unit") && value !== "" && parseFloat(value) < 0) {
       return;
     }
@@ -217,7 +229,6 @@ const PatientsBilling = () => {
   const advancedVal = parseFloat(billingData.advanced) || 0;
   const returnVal = parseFloat(billingData.returnAmount) || 0;
 
-  // Commonsense logic: if advanced > netAmount, balance due is 0 and excess automatically adds to return amount
   let balanceAmount = 0;
   let computedReturnAmount = returnVal;
   if (advancedVal > netAmount) {
@@ -226,6 +237,15 @@ const PatientsBilling = () => {
   } else {
     balanceAmount = netAmount - advancedVal + returnVal;
   }
+
+  const activePrintInv = printingInvoice || {
+    ...billingData,
+    items,
+    subTotal,
+    netAmount,
+    balanceAmount,
+    returnAmount: advancedVal > netAmount ? computedReturnAmount : returnVal
+  };
 
   const handleSubmit = async (e, shouldPrint = false) => {
     if (e) e.preventDefault();
@@ -241,7 +261,12 @@ const PatientsBilling = () => {
         discount: billingData.discount === "" ? 0 : discountVal,
         advanced: billingData.advanced === "" ? 0 : advancedVal,
         returnAmount: advancedVal > netAmount ? computedReturnAmount : (billingData.returnAmount === "" ? 0 : returnVal),
-        items,
+        items: items.map(i => ({
+          ...i,
+          rate: i.rate === "" ? 0 : Number(i.rate),
+          unit: i.unit === "" ? 1 : Number(i.unit),
+          amount: i.amount === "" ? 0 : Number(i.amount)
+        })),
         subTotal,
         netAmount,
         balanceAmount,
@@ -259,7 +284,14 @@ const PatientsBilling = () => {
         toast.success(editingBillId ? `Bill updated successfully! (${billRef})` : `Billing saved successfully! Bill ID: ${billRef}`);
         
         if (shouldPrint) {
-          window.print();
+          setPrintingInvoice({
+            ...payload,
+            billNo: billRef
+          });
+          setTimeout(() => {
+            window.print();
+            setPrintingInvoice(null);
+          }, 100);
         }
 
         handleReset();
@@ -342,8 +374,28 @@ const PatientsBilling = () => {
   return (
     <div className="w-full min-h-screen bg-[#f0f6fa] flex flex-col font-sans text-xs">
       
+      {/* Print Styling Rules */}
+      <style>{`
+        @media print {
+          body * {
+            visibility: hidden;
+          }
+          #printable-bill-section, #printable-bill-section * {
+            visibility: visible;
+          }
+          #printable-bill-section {
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 100%;
+            background: white;
+            padding: 10px;
+          }
+        }
+      `}</style>
+
       {/* Header Bar */}
-      <header className="w-full bg-[#0a2540] text-white px-3 py-2 flex items-center justify-between shadow-sm shrink-0">
+      <header className="w-full bg-[#0a2540] text-white px-3 py-2 flex items-center justify-between shadow-sm shrink-0 print:hidden">
         <div className="flex items-center gap-2">
           <div className="p-1 bg-[#00b4d8] text-white rounded-md flex items-center justify-center">
             <FileText size={15} />
@@ -379,7 +431,7 @@ const PatientsBilling = () => {
       </header>
 
       {/* Main Content Area */}
-      <main className="w-full flex-1 p-2 flex flex-col">
+      <main className="w-full flex-1 p-2 flex flex-col print:hidden">
         <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-2.5 space-y-2 w-full">
           
           {viewMode ? (
@@ -408,7 +460,6 @@ const PatientsBilling = () => {
                         <th className="p-1.5 text-left">Patient Name</th>
                         <th className="p-1.5">Phone</th>
                         <th className="p-1.5 text-right">Net Amount</th>
-                        {/* <th className="p-1.5 text-right">Balance Due</th> */}
                         <th className="p-1.5 text-center">Actions</th>
                       </tr>
                     </thead>
@@ -420,7 +471,6 @@ const PatientsBilling = () => {
                           <td className="p-1.5 font-medium text-slate-800">{bill.fullName}</td>
                           <td className="p-1.5 text-center text-slate-600">{bill.mobileNumber || "N/A"}</td>
                           <td className="p-1.5 text-right font-semibold text-slate-800">₹ {(bill.netAmount || 0).toFixed(2)}</td>
-                          {/* <td className="p-1.5 text-right font-bold text-rose-600">₹ {(bill.balanceAmount || 0).toFixed(2)}</td> */}
                           <td className="p-1.5 text-center flex justify-center gap-1.5">
                             <button
                               type="button"
@@ -464,7 +514,6 @@ const PatientsBilling = () => {
                 <div className="p-2">
                   <div className="grid grid-cols-1 sm:grid-cols-6 gap-1.5 relative">
                     
-                    {/* Patients Name / Search Field with Ref for Click Outside */}
                     <div className="sm:col-span-1 relative" ref={searchRef}>
                       <label className={masterInputLabel}>Patients Name</label>
                       <div className="relative">
@@ -566,7 +615,6 @@ const PatientsBilling = () => {
               {/* SECTION 2 & 3: Description Section and Financial Summary */}
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-2">
                 
-                {/* Left 2/3: Description Items Table */}
                 <div className="lg:col-span-2 space-y-1">
                   <div className="bg-[#00b4d8] text-white px-2.5 py-1 rounded-t-md flex items-center justify-between font-bold text-xs shadow-sm">
                     <span>Billing Particulars / Services</span>
@@ -757,6 +805,152 @@ const PatientsBilling = () => {
 
         </div>
       </main>
+
+      {/* Hidden Printable Bill Format Container */}
+      <div id="printable-bill-section" className="hidden print:block font-sans text-[10px] text-black bg-white p-2 leading-tight">
+        {/* Header Section */}
+        <div className="text-center  mb-2">
+          <h1 className="font-extrabold text-sm tracking-wide uppercase">Kalyani NURSING HOME</h1>
+          <p className="text-[9px] font-semibold">B-8/37, (C.A.), Kalyani, Nadia, * West Bengal * Pin - 741235</p>
+          <p className="text-[9px] font-semibold">Contact Us : (033) 2582-8745</p>
+          <div className="mt-1 inline-block font-bold  text-[10px]">
+            Cash Memo / BILL
+          </div>
+        </div>
+
+{/* Combined Patient & Bill Details Block in One Single Box */}
+        <div className="border border-black p-1.5 mb-2 rounded text-[10px] space-y-0.5 bg-gray-50/50">
+          <div className="grid grid-cols-2 gap-x-6">
+            
+            {/* Left Column */}
+            <div className="space-y-0.5">
+              <div className="grid grid-cols-[100px_10px_1fr]">
+                <span className="font-semibold">Bill No</span><span>:</span><span className="font-semibold ">{activePrintInv.billNo || 'Bill-1'}</span>
+              </div>
+             <div className="grid grid-cols-[100px_10px_1fr]">
+                <span className="font-semibold">Bill Date</span><span>:</span><span className="font-medium">{formatDateToDMY(activePrintInv.billDate)}</span>
+              </div>
+              <div className="grid grid-cols-[100px_10px_1fr]">
+                <span className="font-semibold">Print Date & Time</span><span>:</span>
+                <span className="font-medium">
+                  {(() => {
+                    const now = new Date();
+                    const day = String(now.getDate()).padStart(2, '0');
+                    const month = String(now.getMonth() + 1).padStart(2, '0');
+                    const year = now.getFullYear();
+                    const time = now.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true });
+                    return `${day}-${month}-${year}, ${time}`;
+                  })()}
+                </span>
+              </div>
+              <div className="grid grid-cols-[100px_10px_1fr]">
+                <span className="font-semibold">Admission Date</span><span>:</span><span className="font-medium">{formatDateToDMY(activePrintInv.admissionDate)}</span>
+              </div>
+              <div className="grid grid-cols-[100px_10px_1fr]">
+                <span className="font-semibold">Discharge Date</span><span>:</span><span className="font-medium">{formatDateToDMY(activePrintInv.dischargeDate)}</span>
+              </div>
+              <div className="grid grid-cols-[100px_10px_1fr]">
+                <span className="font-semibold">Doctor Name</span><span>:</span><span className="font-medium">{activePrintInv.drName || '-'}</span>
+              </div>
+              <div className="grid grid-cols-[100px_10px_1fr]">
+                <span className="font-semibold">Ward No</span><span>:</span><span className="font-medium">{activePrintInv.wardNo || '-'}</span>
+              </div>
+            </div>
+
+            {/* Right Column */}
+            <div className="space-y-0.5">
+              <div className="grid grid-cols-[100px_10px_1fr]">
+                <span className="font-semibold">Patient ID</span><span>:</span><span className="font-medium">{activePrintInv.patientId || '-'}</span>
+              </div>
+               <div className="grid grid-cols-[100px_10px_1fr]">
+                <span className="font-semibold">Reg No</span><span>:</span><span className="font-medium">{activePrintInv.regNo || '-'}</span>
+              </div>
+              <div className="grid grid-cols-[100px_10px_1fr]">
+                <span className="font-semibold">Patient Name</span><span>:</span><span className="font-medium">{activePrintInv.fullName || '-'}</span>
+              </div>
+              <div className="grid grid-cols-[100px_10px_1fr]">
+                <span className="font-semibold">Mobile</span><span>:</span><span className="font-medium">{activePrintInv.mobileNumber || '-'}</span>
+              </div>
+              <div className="grid grid-cols-[100px_10px_1fr]">
+                <span className="font-semibold">Gender</span><span>:</span><span className="font-medium">{activePrintInv.gender || '-'}</span>
+              </div>
+               <div className="grid grid-cols-[100px_10px_1fr]">
+                <span className="font-semibold">Age</span><span>:</span><span className="font-medium">{activePrintInv.age || '-'}</span>
+              </div>
+             
+              <div className="grid grid-cols-[100px_10px_1fr]">
+                <span className="font-semibold">Cabin No</span><span>:</span><span className="font-medium">{activePrintInv.cabinNo || '-'}</span>
+              </div>
+            </div>
+
+          </div>
+
+          {/* Full Width Address Row */}
+          <div className="grid grid-cols-[100px_10px_1fr] pt-0.5">
+            <span className="font-semibold">Address</span><span>:</span><span className="font-medium">{activePrintInv.address || '-'}</span>
+          </div>
+        </div>
+
+     {/* Line Items Table (Outer Border & Vertical Dividers Only) */}
+        <table className="w-full rounded border border-black text-[10px] mb-2 text-center">
+          <thead>
+            <tr className="bg-gray-100 border-b border-black">
+              <th className="border-r border-black p-1 w-8 font-bold">Sl</th>
+              <th className="border-r border-black p-1 text-left px-2 font-bold">Description of Services / Particulars</th>
+              <th className="border-r border-black p-1 w-16 font-bold">Rate</th>
+              <th className="border-r border-black p-1 w-12 font-bold">Unit</th>
+              <th className="p-1 w-20 font-bold">Amount</th>
+            </tr>
+          </thead>
+          <tbody>
+            {activePrintInv.items?.map((item, idx) => (
+              <tr key={idx} className="border-b-0">
+                <td className="border-r border-black p-1 align-top font-semibold">{idx + 1}</td>
+                <td className="border-r border-black p-1 text-left px-2 align-top font-semibold">{item.description || '-'}</td>
+                <td className="border-r border-black p-1 align-top font-semibold text-right">{Number(item.rate || 0).toFixed(2)}</td>
+                <td className="border-r border-black p-1 align-top font-semibold text-center">{item.unit || 1}</td>
+                <td className="p-1 align-top font-semibold text-right">{Number(item.amount || 0).toFixed(2)}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+
+    {/* Financial Totals Summary with Aligned Colons */}
+        <div className="flex justify-end mb-3 text-[10px]">
+          <div className="w-64 border border-black p-1.5 rounded space-y-0.5 bg-gray-50">
+            
+            <div className="grid grid-cols-[110px_10px_1fr]">
+              <span className="font-semibold">Sub Total</span><span>:</span><span className="font-medium text-right">₹ {Number(activePrintInv.subTotal || 0).toFixed(2)}</span>
+            </div>
+            
+            <div className="grid grid-cols-[110px_10px_1fr]">
+              <span className="font-semibold">Discount</span><span>:</span><span className="font-medium text-right">₹ {Number(activePrintInv.discount || 0).toFixed(2)}</span>
+            </div>
+            
+            <div className="grid grid-cols-[110px_10px_1fr] border-t border-black pt-0.5">
+              <span className="font-bold">Net Amount</span><span>:</span><span className="font-semibold text-right">₹ {Number(activePrintInv.netAmount || 0).toFixed(2)}</span>
+            </div>
+            
+            <div className="grid grid-cols-[110px_10px_1fr]">
+              <span className="font-semibold">Advanced Paid</span><span>:</span><span className="font-medium text-right">₹ {Number(activePrintInv.advanced || 0).toFixed(2)}</span>
+            </div>
+            
+            <div className="grid grid-cols-[110px_10px_1fr]">
+              <span className="font-semibold">Return Amount</span><span>:</span><span className="font-medium text-right">₹ {Number(activePrintInv.returnAmount || 0).toFixed(2)}</span>
+            </div>
+            
+            <div className="grid grid-cols-[110px_10px_1fr] border-t border-black pt-0.5 font-semibold text-[11px]">
+              <span>Balance Due</span><span>:</span><span className="font-medium text-right">₹ {Number(activePrintInv.balanceAmount || 0).toFixed(2)}</span>
+            </div>
+
+          </div>
+        </div>
+
+        {/* Computer Generated Footer */}
+      <div className="text-[9px] text-center border-b border-dashed border-black pb-1 italic">
+          <p>This is a computer-generated bill and does not require a physical signature.</p>
+        </div>
+      </div>
     </div>
   );
 };
