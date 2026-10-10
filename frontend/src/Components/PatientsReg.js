@@ -158,7 +158,7 @@ const PatientsReg = () => {
         handleReset();
        
       } else {
-        toast.error("Operation failed. Please try again.");
+        toast.error("Operation failed. Please try again .");
       }
     } catch (error) {
       console.error("Patient Save Error:", error);
