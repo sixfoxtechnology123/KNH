@@ -181,3 +181,22 @@ export const masterDashboardIconAdmin = 'flex h-12 w-12 items-center justify-cen
 // Card Typography
 export const masterDashboardCardHeading = 'text-sm font-bold text-slate-800 transition-colors group-hover:text-[#00b4d8]';
 export const masterDashboardCardSubtext = 'mt-1 text-[11px] text-slate-400 font-medium line-clamp-2';
+
+// --- LOGIN PAGE STYLES ---
+export const masterLoginShell = "w-full min-h-screen bg-[#f0f6fa] flex items-center justify-center p-4 font-sans text-xs";
+export const masterLoginCard = "bg-white rounded-lg shadow-md border border-slate-200 w-full max-w-md p-8 space-y-6";
+export const masterLoginHeaderWrap = "text-center space-y-2";
+export const masterLoginIconBox = "inline-flex p-4 bg-[#00b4d8] text-white rounded-full shadow-sm";
+export const masterLoginTitle = "text-xl font-bold text-[#0a2540] tracking-tight";
+export const masterLoginSubtitle = "text-slate-500 text-sm";
+export const masterLoginErrorBox = "bg-rose-50 border border-rose-200 text-rose-700 px-4 py-3 rounded-md flex items-center gap-3 text-sm";
+export const masterLoginForm = "space-y-4";
+export const masterLoginInputWrap = "relative";
+export const masterLoginInputIcon = "absolute inset-y-0 left-0 pl-3 flex items-center text-slate-400";
+export const masterLoginInput = "w-full pl-10 pr-4 py-3 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#00b4d8] focus:border-[#00b4d8] text-sm";
+export const masterLoginPasswordInput = "w-full pl-10 pr-12 py-3 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#00b4d8] focus:border-[#00b4d8] text-sm";
+export const masterLoginEyeBtn = "absolute inset-y-0 right-0 pr-3 flex items-center text-slate-400 hover:text-[#00b4d8] focus:outline-none";
+export const masterCaptchaRow = "flex items-center gap-2 w-full";
+export const masterCaptchaBox = "flex-1 rounded-lg border border-slate-300 bg-slate-100 px-4 py-3 text-center text-lg font-bold tracking-[0.25em] text-[#0a2540] select-none";
+export const masterCaptchaRefreshBtn = "px-3 py-3 rounded-lg border border-slate-300 text-slate-500 hover:text-[#00b4d8] hover:border-[#00b4d8] transition-all flex items-center justify-center";
+export const masterSubmitButton = "w-full bg-[#00b4d8] text-white py-3.5 rounded-lg font-semibold hover:bg-[#0096c7] transition-all shadow-sm flex items-center justify-center gap-2 text-sm disabled:opacity-70";

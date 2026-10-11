@@ -1,4 +1,24 @@
 const Billing = require('../models/billingModel');
+const ActivityHistory = require('../models/activityHistoryModel');
+
+const logBillingActivity = async (req, action, description, recordId) => {
+  try {
+    await ActivityHistory.create({
+      userId: req.user?.id,
+      username: req.user?.username || 'Unknown',
+      role: req.user?.role || '',
+      module: 'Billing',
+      action,
+      description,
+      recordId: recordId || '',
+      recordType: 'Billing',
+      ipAddress: req.ip || '',
+      userAgent: req.headers['user-agent'] || ''
+    });
+  } catch (error) {
+    console.error('Billing activity log error:', error);
+  }
+};
 
 // Helper to generate sequential Bill Number: Bill-1, Bill-2, Bill-3...
 const generateBillNumber = async () => {
@@ -71,6 +91,7 @@ exports.createBilling = async (req, res) => {
     });
 
     await newBill.save();
+    await logBillingActivity(req, 'Create', `Created bill ${newBill.billNo} for ${newBill.fullName}`, newBill._id.toString());
 
     res.status(201).json({
       success: true,
@@ -114,6 +135,8 @@ exports.updateBilling = async (req, res) => {
       return res.status(404).json({ success: false, message: "Billing record not found." });
     }
 
+    await logBillingActivity(req, 'Update', `Updated bill ${updatedBill.billNo} for ${updatedBill.fullName}`, updatedBill._id.toString());
+
     res.status(200).json({
       success: true,
       message: "Billing record updated successfully.",
@@ -135,6 +158,8 @@ exports.deleteBilling = async (req, res) => {
     if (!deletedBill) {
       return res.status(404).json({ success: false, message: "Billing record not found." });
     }
+
+    await logBillingActivity(req, 'Delete', `Deleted bill ${deletedBill.billNo} for ${deletedBill.fullName}`, deletedBill._id.toString());
 
     res.status(200).json({
       success: true,

@@ -1,4 +1,24 @@
 const Patient = require('../models/patientsModel');
+const ActivityHistory = require('../models/activityHistoryModel');
+
+const logPatientActivity = async (req, action, description, recordId) => {
+  try {
+    await ActivityHistory.create({
+      userId: req.user?.id,
+      username: req.user?.username || 'Unknown',
+      role: req.user?.role || '',
+      module: 'Patients Registration',
+      action,
+      description,
+      recordId: recordId || '',
+      recordType: 'Patient',
+      ipAddress: req.ip || '',
+      userAgent: req.headers['user-agent'] || ''
+    });
+  } catch (error) {
+    console.error('Patient activity log error:', error);
+  }
+};
 
 // Helper to generate next sequential patient ID: P1, P2, P3...
 const generateNextPatientId = async () => {
@@ -31,6 +51,7 @@ exports.registerPatient = async (req, res) => {
     });
 
     const savedPatient = await newPatient.save();
+    await logPatientActivity(req, 'Create', `Created patient ${savedPatient.patientId} - ${savedPatient.fullName}`, savedPatient._id.toString());
     res.status(201).json({ success: true, data: savedPatient });
   } catch (err) {
     res.status(400).json({ success: false, message: err.message });
@@ -44,6 +65,7 @@ exports.updatePatient = async (req, res) => {
     if (!updatedPatient) {
       return res.status(404).json({ success: false, message: 'Patient not found' });
     }
+    await logPatientActivity(req, 'Update', `Updated patient ${updatedPatient.patientId} - ${updatedPatient.fullName}`, updatedPatient._id.toString());
     res.status(200).json({ success: true, data: updatedPatient });
   } catch (err) {
     res.status(400).json({ success: false, message: err.message });
@@ -57,6 +79,7 @@ exports.deletePatient = async (req, res) => {
     if (!deletedPatient) {
       return res.status(404).json({ success: false, message: 'Patient not found' });
     }
+    await logPatientActivity(req, 'Delete', `Deleted patient ${deletedPatient.patientId} - ${deletedPatient.fullName}`, deletedPatient._id.toString());
     res.status(200).json({ success: true, message: 'Patient deleted successfully' });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });

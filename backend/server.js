@@ -16,10 +16,15 @@ connectDB();
 // Routes
 const patientsRoutes = require('./routes/patientsRoutes');
 const billingRoutes = require('./routes/billingRoutes');
+const loginRoutes = require('./routes/LoginRoutes'); 
+const adminRoutes = require('./routes/adminRoutes');
+const activityHistoryRoutes = require('./routes/activityHistoryRoutes');
 
-
-app.use('/api/hms/patients', patientsRoutes);
-app.use('/api/hms/billing', billingRoutes);
+app.use('/hms/patients', patientsRoutes);
+app.use('/hms/billing', billingRoutes);
+app.use('/auth', loginRoutes); 
+app.use('/hms/admin', adminRoutes);
+app.use('/hms/activity-history', activityHistoryRoutes);
 
 app.listen(PORT, () => {
   console.log(`Server is running securely on port ${PORT}`);

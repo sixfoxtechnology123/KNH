@@ -4,6 +4,20 @@ import { Toaster } from "react-hot-toast";
 import Dashboard from "./Components/Dashboard";
 import PatientsRegt from "./Components/PatientsReg";
 import PatientsBilling from "./Components/PatientBilling";
+import Login from "./Components/Login"; // <-- Added Login import
+import AdminController from "./Components/AdminController";
+import ActivityHistory from "./Components/ActivityHistory";
+
+const ProtectedRoute = ({ children }) => {
+  return localStorage.getItem("token") ? children : <Navigate to="/" replace />;
+};
+
+const PermissionRoute = ({ permissionKey, children }) => {
+  const currentUser = JSON.parse(localStorage.getItem("currentUser") || "{}");
+  const canView = currentUser.role === "Admin" || currentUser.permissions?.[permissionKey]?.view;
+  if (!localStorage.getItem("token")) return <Navigate to="/" replace />;
+  return canView ? children : <Navigate to="/dashboard" replace />;
+};
 
 function App() {
   return (
@@ -68,9 +82,12 @@ function App() {
           }}
         />
         <Routes>
-          <Route path="/" element={<Dashboard />} />
-          <Route path="/patients-registration" element={<PatientsRegt />} />
-          <Route path="/patients-billing" element={<PatientsBilling />} />
+          <Route path="/" element={<Login />} /> {/* <-- Added Login route */}
+          <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+          <Route path="/patients-registration" element={<PermissionRoute permissionKey="patients_registration"><PatientsRegt /></PermissionRoute>} />
+          <Route path="/patients-billing" element={<PermissionRoute permissionKey="patients_billing"><PatientsBilling /></PermissionRoute>} />
+          <Route path="/admin-control" element={<PermissionRoute permissionKey="admin_controller"><AdminController /></PermissionRoute>} />
+          <Route path="/activity-history" element={<PermissionRoute permissionKey="activity_history"><ActivityHistory /></PermissionRoute>} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </div>

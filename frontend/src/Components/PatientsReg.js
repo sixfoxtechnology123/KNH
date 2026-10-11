@@ -20,6 +20,12 @@ import {
 } from "../GlobalComponent/masterPageStyles";
 
 const PatientsReg = () => {
+  const currentUser = JSON.parse(localStorage.getItem("currentUser") || "{}");
+  const patientPermissions = currentUser.permissions?.patients_registration || {};
+  const isAdmin = currentUser.role === "Admin";
+  const canAdd = isAdmin || patientPermissions.add;
+  const canEdit = isAdmin || patientPermissions.edit;
+  const canDelete = isAdmin || patientPermissions.delete;
   const [saving, setSaving] = useState(false);
   const [viewMode, setViewMode] = useState("form"); // "form" or "list"
   const [patientsList, setPatientsList] = useState([]);
@@ -142,6 +148,14 @@ const PatientsReg = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (editingId && !canEdit) {
+      toast.error("You do not have edit permission.");
+      return;
+    }
+    if (!editingId && !canAdd) {
+      toast.error("You do not have add permission.");
+      return;
+    }
     setSaving(true);
 
     try {
@@ -169,6 +183,10 @@ const PatientsReg = () => {
   };
 
   const handleEdit = (patient) => {
+    if (!canEdit) {
+      toast.error("You do not have edit permission.");
+      return;
+    }
     setEditingId(patient._id);
     
     // Format DOB safely for date input field (YYYY-MM-DD)
@@ -210,6 +228,10 @@ const PatientsReg = () => {
   };
 
   const handleDelete = async (id, name) => {
+    if (!canDelete) {
+      toast.error("You do not have delete permission.");
+      return;
+    }
     if (!window.confirm(`Are you sure you want to delete patient ${name}?`)) return;
 
     try {
@@ -290,7 +312,7 @@ const PatientsReg = () => {
 
           <button
             type="button"
-            onClick={() => window.location.href = "/"}
+            onClick={() => window.location.href = "/dashboard"}
             className="inline-flex items-center gap-1.5 bg-[#00b4d8] text-white px-3 py-1 rounded-md text-xs font-semibold hover:bg-[#0096c7] transition-all cursor-pointer shadow-sm"
           >
             <Home size={14} /> Home
@@ -504,7 +526,7 @@ const PatientsReg = () => {
                 </button>
                 <button 
                   type="submit" 
-                  disabled={saving}
+                  disabled={saving || (editingId ? !canEdit : !canAdd)}
                   className={masterPrimaryButton + " inline-flex items-center gap-1.5 disabled:opacity-50"}
                 >
                   {saving ? <Loader2 size={13} className="animate-spin" /> : <Save size={13} />} 
@@ -549,20 +571,24 @@ const PatientsReg = () => {
                           
                           <td className="p-2 text-center">
                             <div className="inline-flex items-center gap-2">
-                              <button
-                                type="button"
-                                onClick={() => handleEdit(patient)}
-                                className="inline-flex items-center gap-1 bg-[#00b4d8] text-white px-2 py-1 rounded text-[10px] font-semibold hover:bg-[#0096c7] transition-all shadow-sm cursor-pointer"
-                              >
-                                <Edit size={12} /> Edit
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() => handleDelete(patient._id, patient.fullName)}
-                                className="inline-flex items-center gap-1 bg-rose-600 text-white px-2 py-1 rounded text-[10px] font-semibold hover:bg-rose-700 transition-all shadow-sm cursor-pointer"
-                              >
-                                <Trash2 size={12} /> Delete
-                              </button>
+                              {canEdit && (
+                                <button
+                                  type="button"
+                                  onClick={() => handleEdit(patient)}
+                                  className="inline-flex items-center gap-1 bg-[#00b4d8] text-white px-2 py-1 rounded text-[10px] font-semibold hover:bg-[#0096c7] transition-all shadow-sm cursor-pointer"
+                                >
+                                  <Edit size={12} /> Edit
+                                </button>
+                              )}
+                              {canDelete && (
+                                <button
+                                  type="button"
+                                  onClick={() => handleDelete(patient._id, patient.fullName)}
+                                  className="inline-flex items-center gap-1 bg-rose-600 text-white px-2 py-1 rounded text-[10px] font-semibold hover:bg-rose-700 transition-all shadow-sm cursor-pointer"
+                                >
+                                  <Trash2 size={12} /> Delete
+                                </button>
+                              )}
                             </div>
                           </td>
                         </tr>

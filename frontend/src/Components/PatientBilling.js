@@ -38,6 +38,12 @@ const formatDateToDMY = (dateStr) => {
 };
 
 const PatientsBilling = () => {
+  const currentUser = JSON.parse(localStorage.getItem("currentUser") || "{}");
+  const billingPermissions = currentUser.permissions?.patients_billing || {};
+  const isAdmin = currentUser.role === "Admin";
+  const canAdd = isAdmin || billingPermissions.add;
+  const canEdit = isAdmin || billingPermissions.edit;
+  const canDelete = isAdmin || billingPermissions.delete;
   const [saving, setSaving] = useState(false);
   const [patients, setPatients] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
@@ -249,6 +255,14 @@ const PatientsBilling = () => {
 
   const handleSubmit = async (e, shouldPrint = false) => {
     if (e) e.preventDefault();
+    if (editingBillId && !canEdit) {
+      toast.error("You do not have edit permission.", { id: 'avail-qty-err' });
+      return;
+    }
+    if (!editingBillId && !canAdd) {
+      toast.error("You do not have add permission.", { id: 'avail-qty-err' });
+      return;
+    }
     if (!billingData.patientId) {
       toast.error("Please select a valid patient.", { id: 'avail-qty-err' });
       return;
@@ -307,6 +321,10 @@ const PatientsBilling = () => {
   };
 
   const handleEditBill = (bill) => {
+    if (!canEdit) {
+      toast.error("You do not have edit permission.");
+      return;
+    }
     setEditingBillId(bill._id);
     setSearchTerm(bill.fullName || "");
     setBillingData({
@@ -337,6 +355,10 @@ const PatientsBilling = () => {
   };
 
   const handleDeleteBill = async (id) => {
+    if (!canDelete) {
+      toast.error("You do not have delete permission.");
+      return;
+    }
     if (!window.confirm("Are you sure you want to delete this bill?")) return;
     try {
       const response = await api.delete(`/hms/billing/delete/${id}`);
@@ -426,7 +448,7 @@ const PatientsBilling = () => {
 
           <button
             type="button"
-            onClick={() => window.location.href = "/"}
+            onClick={() => window.location.href = "/dashboard"}
             className="inline-flex items-center gap-1.5 bg-[#00b4d8] text-white px-2.5 py-1 rounded-md text-xs font-semibold hover:bg-[#0096c7] transition-all cursor-pointer shadow-sm"
           >
             <Home size={13} /> Home
@@ -489,20 +511,24 @@ const PatientsBilling = () => {
                             >
                               <Printer size={11} /> Print
                             </button>
-                            <button
-                              type="button"
-                              onClick={() => handleEditBill(bill)}
-                              className="px-2 py-0.5 bg-sky-100 text-sky-700 rounded hover:bg-sky-200 transition-colors inline-flex items-center gap-1 text-[11px] font-semibold cursor-pointer"
-                            >
-                              <Edit size={11} /> Edit
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => handleDeleteBill(bill._id)}
-                              className="px-2 py-0.5 bg-rose-100 text-rose-600 rounded hover:bg-rose-200 transition-colors inline-flex items-center gap-1 text-[11px] font-semibold cursor-pointer"
-                            >
-                              <Trash2 size={11} /> Delete
-                            </button>
+                            {canEdit && (
+                              <button
+                                type="button"
+                                onClick={() => handleEditBill(bill)}
+                                className="px-2 py-0.5 bg-sky-100 text-sky-700 rounded hover:bg-sky-200 transition-colors inline-flex items-center gap-1 text-[11px] font-semibold cursor-pointer"
+                              >
+                                <Edit size={11} /> Edit
+                              </button>
+                            )}
+                            {canDelete && (
+                              <button
+                                type="button"
+                                onClick={() => handleDeleteBill(bill._id)}
+                                className="px-2 py-0.5 bg-rose-100 text-rose-600 rounded hover:bg-rose-200 transition-colors inline-flex items-center gap-1 text-[11px] font-semibold cursor-pointer"
+                              >
+                                <Trash2 size={11} /> Delete
+                              </button>
+                            )}
                           </td>
                         </tr>
                       ))}
@@ -799,7 +825,7 @@ const PatientsBilling = () => {
                 <button 
                   type="button" 
                   onClick={(e) => handleSubmit(e, false)} 
-                  disabled={saving}
+                  disabled={saving || (editingBillId ? !canEdit : !canAdd)}
                   className={masterPrimaryButton + " inline-flex items-center gap-1.5 py-1 px-3 disabled:opacity-50"}
                 >
                   {saving ? <Loader2 className="animate-spin" size={12} /> : (editingBillId ? <Check size={12} /> : <Save size={12} />)} 
@@ -809,7 +835,7 @@ const PatientsBilling = () => {
                 <button 
                   type="button" 
                   onClick={(e) => handleSubmit(e, true)} 
-                  disabled={saving}
+                  disabled={saving || (editingBillId ? !canEdit : !canAdd)}
                   className={masterAccentButton + " inline-flex items-center gap-1.5 py-1 px-3 disabled:opacity-50"}
                 >
                   {saving ? <Loader2 className="animate-spin" size={12} /> : <Printer size={12} />} 
