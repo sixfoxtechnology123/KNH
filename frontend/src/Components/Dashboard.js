@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { 
   UserPlus, 
   FileText, 
@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import toast from "react-hot-toast";
 import { api } from "../api/api";
+import avatarImg from "../Assets/avatar.jpg";
 
 import {
   masterDashboardShell,
@@ -29,6 +30,11 @@ import {
   masterDashboardIconBilling,
   masterDashboardIconAdmin,
   masterDashboardCardHeading,
+  masterHeaderResponsive,
+  masterHeaderIconBox,
+  masterHeaderTitle,
+  masterHeaderFlexBtn,
+  masterAccentButton,
 } from "../GlobalComponent/masterPageStyles";
 
 const Dashboard = () => {
@@ -40,13 +46,14 @@ const Dashboard = () => {
   const [showOldPassword, setShowOldPassword] = useState(false);
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [showProfileDropdown, setShowProfileDropdown] = useState(false);
   const [passwordData, setPasswordData] = useState({
     oldPassword: "",
     newPassword: "",
     confirmPassword: "",
   });
 
-  const canView = (key) => isAdmin || permissions[key]?.view;
+  const canView = (key) => permissions[key]?.view === true;
 
   const openModule = (path, moduleName) => {
     localStorage.setItem("activeModule", moduleName);
@@ -59,6 +66,22 @@ const Dashboard = () => {
     window.location.href = "/";
   };
 
+  const dropdownRef = useRef(null);
+
+useEffect(() => {
+  const handleClickOutside = (event) => {
+    if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+      setShowProfileDropdown(false);
+    }
+  };
+
+  if (showProfileDropdown) {
+    document.addEventListener("mousedown", handleClickOutside);
+  }
+  return () => {
+    document.removeEventListener("mousedown", handleClickOutside);
+  };
+}, [showProfileDropdown]);
   const handlePasswordChange = async (e) => {
     e.preventDefault();
     setChangingPassword(true);
@@ -68,6 +91,7 @@ const Dashboard = () => {
         toast.success("Password changed successfully.");
         setShowPasswordModal(false);
         setPasswordData({ oldPassword: "", newPassword: "", confirmPassword: "" });
+        handleLogout();
       }
     } catch (error) {
       toast.error(error.response?.data?.message || "Failed to change password.");
@@ -86,51 +110,79 @@ const Dashboard = () => {
       {/* Main Layout */}
       <div className={masterDashboardLayout}>
         
-        {/* Simple Header */}
-        <header className={masterDashboardSimpleHeader}>
-          <div className="flex items-center gap-3">
-            <div className={masterDashboardLogoContainer}>
-             
-            </div>
+   {/* Simple Header */}
+  <header className={masterHeaderResponsive}>
+    <div className="flex items-center gap-2">
+      <div className={masterHeaderIconBox}>
+        {/* Icon or logo content */}
+      </div>
 
-            <div className="flex flex-col leading-none">
-              <h1
-                className={masterDashboardAppName}
-                style={{
-                  fontFamily: "'Montserrat', 'Poppins', 'Inter', sans-serif",
-                  letterSpacing: "0.20em",
-                }}
-              >
-                KALYANI NURSING HOME
-              </h1>
-              <span
-                className={masterDashboardAppSubtitle}
-                style={{
-                  fontFamily: "'Montserrat', 'Inter', sans-serif",
-                }}
-              >
-                NURSING HOME & RESEARCH CENTRE
-              </span>
-            </div>
-          </div>
+      <div className="flex flex-col leading-none">
+        <h1
+          className={masterDashboardAppName}
+          style={{
+            fontFamily: "'Montserrat', 'Poppins', 'Inter', sans-serif",
+            letterSpacing: "0.20em",
+          }}
+        >
+          KALYANI NURSING HOME
+        </h1>
+      </div>
+    </div>
 
-          <div className="flex items-center gap-2">
+    {/* Right side: Name on left of avatar, with dropdown menu */}
+    <div className="flex items-center gap-3 relative">
+      {currentUser.name && (
+        <span className="text-xs font-semibold text-cyan-100 hidden sm:inline">
+          {currentUser.name}
+        </span>
+      )}
+
+      {/* Circular Avatar Button */}
+      <div className="relative" ref={dropdownRef}>
+        <button
+          type="button"
+          onClick={() => setShowProfileDropdown(!showProfileDropdown)}
+          className="flex items-center focus:outline-none cursor-pointer rounded-full ring-2 ring-[#00b4d8] hover:ring-white transition-all"
+        >
+          <img 
+            src={avatarImg} 
+            alt="User Avatar" 
+            className="w-9 h-9 rounded-full object-cover"
+          />
+        </button>
+
+        {/* Dropdown Menu */}
+        {showProfileDropdown && (
+          <div className="absolute right-0 mt-2 w-44 rounded-lg bg-white py-1.5 shadow-xl border border-slate-200 z-50 text-slate-800">
+            <div className="px-3 py-1.5 border-b border-slate-100 text-[11px] font-bold text-slate-500 truncate">
+              {currentUser.name || "User Account"}
+            </div>
             <button
               type="button"
-              onClick={() => setShowPasswordModal(true)}
-              className="inline-flex items-center gap-1.5 rounded-md border border-white/20 bg-white/10 px-3 py-1.5 text-xs font-semibold text-white hover:bg-white/20"
+              onClick={() => {
+                setShowProfileDropdown(false);
+                setShowPasswordModal(true);
+              }}
+              className="w-full text-left px-3 py-2 text-xs font-semibold hover:bg-slate-100 flex items-center gap-2 text-slate-700 cursor-pointer"
             >
-              <KeyRound size={14} /> Change Password
+              <KeyRound size={13} className="text-[#00b4d8]" /> Change Password
             </button>
             <button
               type="button"
-              onClick={handleLogout}
-              className="inline-flex items-center gap-1.5 rounded-md bg-rose-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-rose-700"
+              onClick={() => {
+                setShowProfileDropdown(false);
+                handleLogout();
+              }}
+              className="w-full text-left px-3 py-2 text-xs font-semibold hover:bg-rose-50 flex items-center gap-2 text-rose-600 cursor-pointer"
             >
-              <LogOut size={14} /> Logout
+              <LogOut size={13} /> Logout
             </button>
           </div>
-        </header>
+        )}
+      </div>
+    </div>
+  </header>
 
         <main className={masterDashboardMainContainer}>
       

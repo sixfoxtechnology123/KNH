@@ -340,7 +340,7 @@ const PatientsReg = () => {
       <div className="flex items-center gap-2">
         <div className={masterHeaderIconBox}>
           <UserPlus size={16} />
-        </div>
+        </div> 
         <h1 className={masterHeaderTitle}>
           {viewMode === "form" ? (editingId ? "Edit Patient Registration" : "Patient Registration") : "Registered Patients List"}
         </h1>

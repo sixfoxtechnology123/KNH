@@ -17,6 +17,7 @@ const loginUser = async (req, res) => {
       const hashedPassword = await bcrypt.hash('sixfox@2026', 10);
       await LoginModel.create({
         username: 'sixfox',
+        name: 'Sixfox Technology',
         password: hashedPassword,
         role: 'Admin'
       });

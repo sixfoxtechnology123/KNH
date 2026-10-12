@@ -53,8 +53,17 @@ exports.createUser = async (req, res) => {
       return res.status(409).json({ success: false, message: 'User ID already exists.' });
     }
 
+    let cleanedPermissions = {};
+    if (permissions) {
+      for (let key in permissions) {
+        if (permissions[key] && permissions[key].view === true) {
+          cleanedPermissions[key] = permissions[key];
+        }
+      }
+    }
+
     const hashedPassword = await bcrypt.hash(password, 10);
-    const user = await LoginModel.create({ name, username: userId, password: hashedPassword, role: role || 'Staff', permissions });
+    const user = await LoginModel.create({ name, username: userId, password: hashedPassword, role: role || 'Staff', permissions: cleanedPermissions });
     await logAdminActivity(req, 'Create', `Created admin user ${userId}`, user._id.toString());
 
     res.status(201).json({ success: true, data: toAdminUser(user) });
@@ -67,7 +76,17 @@ exports.createUser = async (req, res) => {
 exports.updateUser = async (req, res) => {
   try {
     const { name, userId, password, role, permissions } = req.body;
-    const updateData = { name, username: userId, role, permissions };
+
+    let cleanedPermissions = {};
+    if (permissions) {
+      for (let key in permissions) {
+        if (permissions[key] && permissions[key].view === true) {
+          cleanedPermissions[key] = permissions[key];
+        }
+      }
+    }
+
+    const updateData = { name, username: userId, role, permissions: cleanedPermissions };
 
     if (password && password.trim()) {
       updateData.password = await bcrypt.hash(password, 10);
