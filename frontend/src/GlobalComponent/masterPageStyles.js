@@ -13,13 +13,28 @@ export const masterHeaderInfo = 'flex items-center gap-1';
 export const masterHeaderIcon = 'rounded-lg bg-[#00b4d8] p-0.5 text-white';
 export const masterTitle = 'text-sm font-bold text-slate-900 leading-none';
 export const masterTitleSidebar = 'text-sm font-bold text-white leading-none';
-
 export const masterSubtitle = 'text-[10px] text-slate-800 font-semibold';
-export const masterPrimaryButton = 'inline-flex items-center gap-2 rounded-md bg-[#0a2540] px-3 py-1.5 text-xs font-semibold text-white shadow-sm hover:bg-[#12365a] transition-all cursor-pointer';
+export const masterPrimaryButton = 'inline-flex items-center gap-2 rounded-md bg-[#0a5865] px-3 py-1.5 text-xs font-semibold text-white shadow-sm hover:bg-[#12365a] transition-all cursor-pointer';
 export const masterAccentButton = 'inline-flex items-center gap-2 rounded-md bg-[#00b4d8] px-3 py-1.5 text-xs font-semibold text-white hover:bg-[#0096c7] transition-all cursor-pointer';
+export const masterAddRow = 'inline-flex items-center gap-2 rounded-md bg-[#00b4d8] px-3 py-1 text-xs font-semibold text-white hover:bg-[#0096c7] transition-all cursor-pointer';
+export const masterHeaderBar = "w-full bg-[#345f8d] text-white px-4 py-2.5 flex items-center justify-between shadow-sm shrink-0"
+export const masterListView = "inline-flex items-center gap-1.5 bg-[#2ba2b9] text-white px-3 py-1 rounded-md text-xs font-semibold  transition-all cursor-pointer shadow-sm"
+
+// --- NEW HEADER & SECTION STYLES ---
+export const masterHeaderResponsive = 'w-full bg-[#356192] text-white px-3 sm:px-5 py-2.5 flex flex-wrap items-center justify-between gap-2.5 shadow-sm shrink-0';
+export const masterHeaderIconBox = 'p-1.5 bg-[#09a1c1] text-white rounded-md shrink-0';
+export const masterHeaderTitle = 'text-xs sm:text-sm font-bold tracking-wider truncate';
+export const masterHeaderActionWrap = 'flex items-center gap-2 w-full sm:w-auto justify-end';
+export const masterHeaderFlexBtn = 'flex-1 sm:flex-none justify-center';
+
+// Section Container Shadow & Border styles
+export const masterSectionCard = 'rounded-xl border border-[rgba(125,166,172,0.5)] bg-white overflow-hidden shadow-[0_8px_24px_-4px_rgba(28,87,98,0.3)]';
+export const masterSectionHeaderBar = 'bg-[#1c5762] text-white px-3.5 py-2 flex items-center gap-1.5 font-bold text-xs';
 
 // --- NEW FORM STYLES FOR PATIENTS REGISTRATION ---
 export const masterInputLabel = 'block text-[11px] font-bold text-slate-700 mb-1';
+export const masterHeading="rounded-xl border border-[rgba(125,166,172,0.5)] bg-white overflow-hidden shadow-[0_8px_24px_-4px_rgba(28,87,98,0.3)]"
+export const masterHeadingBordersection="bg-[#1c5762] text-white px-3.5 py-2 flex items-center gap-1.5 font-bold text-xs"
 export const masterInput = 'w-full rounded-md border border-slate-300 bg-white px-3 py-1  font-medium text-xs text-slate-900 outline-none transition focus:border-[#00b4d8] focus:ring-2 focus:ring-[#00b4d8]/15';
 export const masterSelect = 'w-full rounded-md border border-slate-300 bg-white px-3 py-1 text-xs text-slate-900 font-medium outline-none transition focus:border-[#00b4d8] focus:ring-2 focus:ring-[#00b4d8]/15';
 export const masterSectionTitle = 'text-xs font-bold text-slate-900 border-b border-slate-100 pb-2 mb-3 tracking-wide uppercase';
@@ -39,9 +54,11 @@ export const masterToolbar = ' px-2 py-1 flex flex-row items-center justify-betw
 export const masterSearchWrap = 'flex items-center flex-1 bg-white border border-slate-300 rounded-lg px-2 py-1 focus-within:border-[#00b4d8] transition-colors w-full shadow-2xs';
 export const masterSearchInput = 'flex-1 bg-transparent px-1 text-[11px] font-semibold outline-none w-full text-slate-800';
 export const masterTableWrap = 'overflow-x-auto w-full';
+
 export const masterTable = 'w-full text-left border border-slate-200 bg-white';
-export const masterTableHead = 'bg-slate-100/90 text-[9px] text-slate-700 border-b border-slate-200 font-semibold';
+export const masterTableHead = 'text-[9px] text-slate-700 border-b border-slate-200 font-semibold';
 export const masterStickyHeadRow = 'sticky top-0 z-10 bg-[#e6eff7] text-left text-[9px] font-bold tracking-[0.14em] text-slate-700 border-b border-slate-300/80';
+
 export const masterTableRow = 'hover:bg-cyan-50/60 transition-colors bg-white ';
 export const masterTableCell = 'px-0.5 text-xs border-r font-semibold border-slate-200 text-center';
 
@@ -49,7 +66,7 @@ export const masterReadOnly = 'w-full border border-slate-200 rounded p-0.5 text
 export const masterValueBox = 'rounded-xl border border-slate-200 bg-white p-0.5';
 export const masterMutedValueLabel = 'text-[8px] text-slate-400 font-semibold';
 export const masterMutedValue = 'text-base font-bold text-slate-900';
-export const masterTableData = 'truncate font-semibold text-slate-800 text-center border border-slate-200 text-[11px]';
+export const masterTableData = 'bg-slate-100 truncate font-semibold text-slate-800 py-1 text-center border-r border-slate-200 text-[11px]';
 export const masterTableDatastatus = 'truncate font-semibold text-slate-800 text-center border border-slate-300 text-[11px] px-2 py-1';
 export const masterTableID = 'p-0.5 border border-slate-200 text-center text-[#00b4d8] font-semibold text-[11px]';
 export const masterTableCellstatus = 'px-0.5 border-r font-semibold border-slate-300 text-center truncate';

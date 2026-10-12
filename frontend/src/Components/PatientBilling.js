@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
+import { useSearchParams } from "react-router-dom";
 import { 
   FileText, 
   Home, 
@@ -22,6 +23,25 @@ import {
   masterAccentButton,
   masterInputLabel,
   masterInput,
+  masterHeaderResponsive,
+  masterHeaderIconBox,
+  masterHeaderTitle,
+  masterHeaderActionWrap,
+  masterHeaderFlexBtn,
+ masterAddRow,
+  masterSelect,
+  masterTableCell,
+  masterHeading,
+  masterHeadingBordersection,
+  masterHeaderBar,
+  masterListView,
+ 
+  masterEditButton,
+  masterDeleteButton,
+  masterTableHead,
+  masterTableData,
+ 
+ 
 } from "../GlobalComponent/masterPageStyles";
 
 
@@ -56,8 +76,19 @@ const PatientsBilling = () => {
   const [loadingBills, setLoadingBills] = useState(false);
   const [editingBillId, setEditingBillId] = useState(null);
   const [printingInvoice, setPrintingInvoice] = useState(null);
+  const [searchParams] = useSearchParams();
+  const urlPatientId = searchParams.get("patientId");
 
   const searchRef = useRef(null);
+
+  useEffect(() => {
+    if (urlPatientId && patients.length > 0) {
+      const foundPatient = patients.find(p => p._id === urlPatientId);
+      if (foundPatient) {
+        handleSelectPatient(foundPatient);
+      }
+    }
+  }, [urlPatientId, patients]);
 
   useEffect(() => {
     const handleClickOutside = (event) => {
@@ -421,15 +452,15 @@ const PatientsBilling = () => {
       `}</style>
 
       {/* Header Bar */}
-      <header className="w-full bg-[#0a2540] text-white px-3 py-2 flex items-center justify-between shadow-sm shrink-0 print:hidden">
-        <div className="flex items-center gap-2">
-          <div className="p-1 bg-[#00b4d8] text-white rounded-md flex items-center justify-center">
+<header className={masterHeaderResponsive}>
+  <div className="flex items-center gap-2">
+    <div className={masterHeaderIconBox}>
             <FileText size={15} />
           </div>
-          <h1 className="text-xs font-bold tracking-wider">Patient Billing & Invoice</h1>
+         <h1 className={masterHeaderTitle}>Patient Billing & Invoice</h1>
         </div>
 
-        <div className="flex items-center gap-1.5">
+        <div className={masterHeaderActionWrap}>
           <button
             type="button"
             onClick={() => {
@@ -440,7 +471,7 @@ const PatientsBilling = () => {
                 fetchSavedBills();
               }
             }}
-            className="inline-flex items-center gap-1 bg-slate-700 text-white px-2.5 py-1 rounded-md text-xs font-semibold hover:bg-slate-600 transition-all cursor-pointer shadow-sm"
+           className={`${masterAccentButton} ${masterHeaderFlexBtn}`}
           >
             {viewMode ? <ArrowLeft size={13} /> : <Eye size={13} />} 
             {viewMode ? "Back to Form" : "View Bill"}
@@ -449,7 +480,7 @@ const PatientsBilling = () => {
           <button
             type="button"
             onClick={() => window.location.href = "/dashboard"}
-            className="inline-flex items-center gap-1.5 bg-[#00b4d8] text-white px-2.5 py-1 rounded-md text-xs font-semibold hover:bg-[#0096c7] transition-all cursor-pointer shadow-sm"
+           className={`${masterPrimaryButton} ${masterHeaderFlexBtn}`}
           >
             <Home size={13} /> Home
           </button>
@@ -458,7 +489,7 @@ const PatientsBilling = () => {
 
       {/* Main Content Area */}
       <main className="w-full flex-1 p-2 flex flex-col print:hidden">
-        <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-2.5 space-y-2 w-full">
+       <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-2.5 space-y-2 w-full">
           
           {viewMode ? (
             /* SAVED BILLS TABLE VIEW */
@@ -549,8 +580,8 @@ const PatientsBilling = () => {
               )}
 
               {/* SECTION 1: Patient Search & Header Details */}
-              <div className="space-y-1">
-                <div className="bg-[#00b4d8] text-white px-2.5 py-1 rounded-t-md flex items-center gap-1.5 font-bold text-xs shadow-sm">
+              <div className={masterHeading}>
+                  <div className={masterHeadingBordersection}>
                   <Search size={13} /> Patient & Admission Details
                 </div>
 
@@ -657,16 +688,15 @@ const PatientsBilling = () => {
 
               {/* SECTION 2 & 3: Description Section and Financial Summary */}
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-2">
-                
                 <div className="lg:col-span-2 space-y-1">
-                  <div className="bg-[#00b4d8] text-white px-2.5 py-1 rounded-t-md flex items-center justify-between font-bold text-xs shadow-sm">
-                    <span>Billing Particulars / Services</span>
+                  <div className="bg-[#1c5762] text-white px-2.5 py-1 rounded-t-md flex items-center justify-between font-bold text-xs shadow-sm">
+                    <span>Billing Services</span>
                     <button
                       type="button"
                       onClick={handleAddItem}
-                      className="inline-flex items-center gap-1 bg-white text-[#00b4d8] px-2 py-0.5 rounded text-[11px] font-bold hover:bg-slate-100 transition-all cursor-pointer shadow-sm"
+                      className={masterAddRow}
                     >
-                      <Plus size={12} /> Add Row
+                      <Plus size={12} /> Add Item
                     </button>
                   </div>
 
@@ -742,7 +772,7 @@ const PatientsBilling = () => {
 
                 {/* Right 1/3: Financial Summary */}
                 <div className="lg:col-span-1 space-y-1">
-                  <div className="bg-[#00b4d8] text-white px-2.5 py-1 rounded-t-md font-bold text-xs shadow-sm">
+                  <div className="bg-[#1c5762] text-white px-2.5 py-1 rounded-t-md font-bold text-xs shadow-sm">
                     Financial Summary
                   </div>
 

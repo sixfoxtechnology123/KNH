@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { 
   UserPlus, 
   Home, 
@@ -17,9 +18,25 @@ import {
   masterInputLabel,
   masterInput,
   masterSelect,
+  masterTableCell,
+  masterHeading,
+  masterHeadingBordersection,
+  masterHeaderBar,
+  masterListView,
+  masterAccentButton,
+  masterEditButton,
+  masterDeleteButton,
+  masterTableHead,
+  masterTableData,
+  masterHeaderResponsive,
+  masterHeaderIconBox,
+  masterHeaderTitle,
+  masterHeaderActionWrap,
+  masterHeaderFlexBtn
 } from "../GlobalComponent/masterPageStyles";
 
 const PatientsReg = () => {
+  const navigate = useNavigate();
   const currentUser = JSON.parse(localStorage.getItem("currentUser") || "{}");
   const patientPermissions = currentUser.permissions?.patients_registration || {};
   const isAdmin = currentUser.role === "Admin";
@@ -144,6 +161,41 @@ const PatientsReg = () => {
       ...prev,
       [name]: type === "checkbox" ? checked : processedValue,
     }));
+  };
+
+  const handleSaveAndBilling = async (e) => {
+    e.preventDefault();
+    if (editingId && !canEdit) {
+      toast.error("You do not have edit permission.");
+      return;
+    }
+    if (!editingId && !canAdd) {
+      toast.error("You do not have add permission.");
+      return;
+    }
+    setSaving(true);
+
+    try {
+      let response;
+      if (editingId) {
+        response = await api.put(`/hms/patients/update/${editingId}`, formData);
+      } else {
+        response = await api.post('/hms/patients/register', formData);
+      }
+
+      if (response.data.success) {
+        const savedPatient = response.data.data;
+        toast.success(editingId ? `Patient Updated! ID: ${savedPatient.patientId}` : `Patient Registered Successfully! ID: ${savedPatient.patientId}`);
+        navigate(`/patients-billing?patientId=${savedPatient._id}`);
+      } else {
+        toast.error("Operation failed. Please try again.");
+      }
+    } catch (error) {
+      console.error("Patient Save Error:", error);
+      toast.error(error.response?.data?.message || "Failed to connect to server.");
+    } finally {
+      setSaving(false);
+    }
   };
 
   const handleSubmit = async (e) => {
@@ -283,127 +335,127 @@ const PatientsReg = () => {
   return (
     <div className="w-full min-h-screen bg-[#f0f6fa] flex flex-col font-sans text-xs">
       
-      {/* Compact Header Bar with List View & Home Buttons */}
-      <header className="w-full bg-[#0a2540] text-white px-4 py-2.5 flex items-center justify-between shadow-sm shrink-0">
-        <div className="flex items-center gap-2">
-          <div className="p-1.5 bg-[#00b4d8] text-white rounded-md">
-            <UserPlus size={16} />
-          </div>
-          <h1 className="text-sm font-bold tracking-wider">
-            {viewMode === "form" ? (editingId ? "Edit Patient Registration" : "Patient Registration") : "Registered Patients List"}
-          </h1>
+    {/* Compact Header Bar with List View & Home Buttons */}
+    <header className={masterHeaderResponsive}>
+      <div className="flex items-center gap-2">
+        <div className={masterHeaderIconBox}>
+          <UserPlus size={16} />
         </div>
+        <h1 className={masterHeaderTitle}>
+          {viewMode === "form" ? (editingId ? "Edit Patient Registration" : "Patient Registration") : "Registered Patients List"}
+        </h1>
+      </div>
 
-        <div className="flex items-center gap-2">
-          <button
-            type="button"
-            onClick={() => {
-              if (viewMode === "form") {
-                setViewMode("list");
-              } else {
-                handleReset();
-                setViewMode("form");
-              }
-            }}
-            className="inline-flex items-center gap-1.5 bg-emerald-600 text-white px-3 py-1 rounded-md text-xs font-semibold hover:bg-emerald-700 transition-all cursor-pointer shadow-sm"
-          >
-            {viewMode === "form" ? <><List size={14} /> List View</> : <><UserPlus size={14} /> New Registration</>}
-          </button>
+      <div className={masterHeaderActionWrap}>
+        <button
+          type="button"
+          onClick={() => {
+            if (viewMode === "form") {
+              setViewMode("list");
+            } else {
+              handleReset();
+              setViewMode("form");
+            }
+          }}
+          className={`${masterAccentButton} ${masterHeaderFlexBtn}`}
+        >
+          {viewMode === "form" ? <><List size={14} /> List View</> : <><UserPlus size={14} /> New Registration</>}
+        </button>
 
-          <button
-            type="button"
-            onClick={() => window.location.href = "/dashboard"}
-            className="inline-flex items-center gap-1.5 bg-[#00b4d8] text-white px-3 py-1 rounded-md text-xs font-semibold hover:bg-[#0096c7] transition-all cursor-pointer shadow-sm"
-          >
-            <Home size={14} /> Home
-          </button>
-        </div>
-      </header>
+        <button
+          type="button"
+          onClick={() => window.location.href = "/dashboard"}
+          className={`${masterPrimaryButton} ${masterHeaderFlexBtn}`}
+        >
+          <Home size={14} /> Home
+        </button>
+      </div>
+    </header>
 
       {/* Main Content Area */}
       <main className="w-full flex-1 p-2 flex flex-col overflow-visible">
-        <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-3 space-y-2 w-full">
+         <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-2.5 space-y-2 w-full">
           
           {viewMode === "form" ? (
             <form onSubmit={handleSubmit} className="space-y-2 text-xs">
               
-              {/* SECTION 1: Patient Info */}
-              <div className="space-y-1">
-                <div className="bg-[#00b4d8] text-white px-3 py-1.5 rounded-t-md flex items-center gap-1.5 font-bold text-xs shadow-sm">
-                  <UserPlus size={14} /> Patient Info {editingId && `(Editing ID: ${editingId})`}
+         {/* SECTION 1: Patient Info */}
+          <div className={masterHeading}>
+            <div className={masterHeadingBordersection}>
+              <UserPlus size={14} /> Patient Info {editingId && `(Editing ID: ${editingId})`}
+            </div>
+
+            <div className="p-3 bg-white space-y-2">
+              <div className="grid grid-cols-1 sm:grid-cols-5 gap-2.5 items-end">
+                
+                <div>
+                  <label className={masterInputLabel}>Prefix</label>
+                  <select name="prefix" value={formData.prefix} onChange={handleChange} className={masterSelect}>
+                    <option value="">-Select-</option>
+                    <option value="Mr">Mr.</option>
+                    <option value="Mrs">Mrs.</option>
+                    <option value="Ms">Ms.</option>
+                    <option value="Master">Master</option>
+                    <option value="Baby">Baby</option>
+                  </select>
                 </div>
 
-                <div className="p-1 bg-slate-50/50 rounded-b-md space-y-2">
-                  <div className="grid grid-cols-1 sm:grid-cols-5 gap-2 items-end">
-                    
-                    <div>
-                      <label className={masterInputLabel}>Prefix</label>
-                      <select name="prefix" value={formData.prefix} onChange={handleChange} className={masterSelect}>
-                        <option value="">-select-</option>
-                        <option value="Mr">Mr.</option>
-                        <option value="Mrs">Mrs.</option>
-                        <option value="Ms">Ms.</option>
-                        <option value="Master">Master</option>
-                        <option value="Baby">Baby</option>
-                      </select>
-                    </div>
+                <div>
+                  <label className={masterInputLabel}>Full Name</label>
+                  <input type="text" name="fullName" value={formData.fullName} onChange={handleChange} placeholder="Enter Full Name" className={masterInput} />
+                </div>
 
-                    <div>
-                      <label className={masterInputLabel}>Full Name</label>
-                      <input type="text" name="fullName" value={formData.fullName} onChange={handleChange} placeholder="Enter Full Name" className={masterInput} />
-                    </div>
+                <div>
+                  <label className={masterInputLabel}>Gender</label>
+                  <select name="gender" value={formData.gender} onChange={handleChange} className={masterSelect}>
+                    <option value="">-- Seletc Gender --</option>
+                    <option value="Male">Male</option>
+                    <option value="Female">Female</option>
+                    <option value="Other">Other</option>
+                  </select>
+                </div>
 
-                    <div>
-                      <label className={masterInputLabel}>Gender</label>
-                      <select name="gender" value={formData.gender} onChange={handleChange} className={masterSelect}>
-                        <option value="">-- SELECT GENDER --</option>
-                        <option value="Male">Male</option>
-                        <option value="Female">Female</option>
-                        <option value="Other">Other</option>
-                      </select>
-                    </div>
+                <div>
+                  <label className={masterInputLabel}>DOB</label>
+                  <input type="date" name="dob" value={formData.dob} onChange={handleChange} className={masterInput} />
+                </div>
 
-                    <div>
-                      <label className={masterInputLabel}>DOB</label>
-                      <input type="date" name="dob" value={formData.dob} onChange={handleChange} className={masterInput} />
-                    </div>
+                <div>
+                  <label className={masterInputLabel}>Age</label>
+                  <input type="text" name="age" value={formData.age} readOnly placeholder="Auto-Calculated" className={masterInput + " bg-slate-100"} />
+                </div>
 
-                    <div>
-                      <label className={masterInputLabel}>Age</label>
-                      <input type="text" name="age" value={formData.age} readOnly placeholder="Auto-Calculated" className={masterInput + " bg-slate-100"} />
-                    </div>
+                <div>
+                  <label className={masterInputLabel}>Mobile Number</label>
+                  <input type="tel" name="mobileNumber" maxLength={10} value={formData.mobileNumber} onChange={handleChange} placeholder="Enter Mobile Number" className={masterInput} />
+                </div>
 
-                    <div>
-                      <label className={masterInputLabel}>Mobile Number</label>
-                      <input type="tel" name="mobileNumber" maxLength={10} value={formData.mobileNumber} onChange={handleChange} placeholder="Enter Mobile Number" className={masterInput} />
-                    </div>
+                <div>
+                  <label className={masterInputLabel}>Emergency Contact Name</label>
+                  <input type="text" name="emergencyContactName" value={formData.emergencyContactName} onChange={handleChange} placeholder="Enter Name" className={masterInput} />
+                </div>
 
-                    <div>
-                      <label className={masterInputLabel}>Emergency Contact Name</label>
-                      <input type="text" name="emergencyContactName" value={formData.emergencyContactName} onChange={handleChange} placeholder="Enter Name" className={masterInput} />
-                    </div>
+                <div>
+                  <label className={masterInputLabel}>Emergency Number</label>
+                  <input type="tel" name="emergencyNumber" maxLength={10} value={formData.emergencyNumber} onChange={handleChange} placeholder="Enter Number" className={masterInput} />
+                </div>
 
-                    <div>
-                      <label className={masterInputLabel}>Emergency Number</label>
-                      <input type="tel" name="emergencyNumber" maxLength={10} value={formData.emergencyNumber} onChange={handleChange} placeholder="Enter Number" className={masterInput} />
-                    </div>
+                <div>
+                  <label className={masterInputLabel}>Blood Group</label>
+                  <input type="text" name="bloodGroup" value={formData.bloodGroup} onChange={handleChange} placeholder="e.g. A+" className={masterInput} />
+                </div>
 
-                    <div>
-                      <label className={masterInputLabel}>Blood Group</label>
-                      <input type="text" name="bloodGroup" value={formData.bloodGroup} onChange={handleChange} placeholder="e.g. A+" className={masterInput} />
-                    </div>
-
-                    <div>
-                      <label className={masterInputLabel}>Department</label>
-                      <input type="text" name="department" value={formData.department} onChange={handleChange} placeholder="Enter Department" className={masterInput} />
-                    </div>
-                  </div>
+                <div>
+                  <label className={masterInputLabel}>Department</label>
+                  <input type="text" name="department" value={formData.department} onChange={handleChange} placeholder="Enter Department" className={masterInput} />
                 </div>
               </div>
+            </div>
+          </div>
 
               {/* SECTION 2: Address */}
-              <div className="space-y-1">
-                <div className="bg-[#00b4d8] text-white px-3 py-1.5 rounded-t-md flex items-center gap-1.5 font-bold text-xs shadow-sm">
+            <div className={masterHeading}>
+            <div className={masterHeadingBordersection}>
                   Address
                 </div>
 
@@ -443,8 +495,8 @@ const PatientsReg = () => {
               </div>
 
               {/* SECTION 3: Kin Details */}
-              <div className="space-y-1">
-                <div className="bg-[#00b4d8] text-white px-3 py-1.5 rounded-t-md flex items-center gap-1.5 font-bold text-xs shadow-sm">
+              <div className={masterHeading}>
+                <div className={masterHeadingBordersection}>
                   Kin Details
                 </div>
 
@@ -515,24 +567,35 @@ const PatientsReg = () => {
               </div>
 
               {/* Action Buttons */}
-              <div className="flex justify-end gap-2 pt-1">
-                <button 
-                  type="button" 
-                  onClick={handleReset} 
-                  disabled={saving}
-                  className="inline-flex items-center gap-1 px-3 py-1.5 rounded-md border border-slate-300 text-xs font-semibold text-slate-600 hover:bg-slate-50 transition-all shadow-sm cursor-pointer disabled:opacity-50"
-                >
-                  <RotateCcw size={13} /> {editingId ? "Cancel Edit" : "Reset"}
-                </button>
-                <button 
-                  type="submit" 
-                  disabled={saving || (editingId ? !canEdit : !canAdd)}
-                  className={masterPrimaryButton + " inline-flex items-center gap-1.5 disabled:opacity-50"}
-                >
-                  {saving ? <Loader2 size={13} className="animate-spin" /> : <Save size={13} />} 
-                  {saving ? "Saving..." : (editingId ? "Update Patient" : "Save Registration")}
-                </button>
-              </div>
+         <div className="flex flex-col-reverse sm:flex-row justify-end gap-2.5 pt-3 w-full">
+            <button 
+              type="button" 
+              onClick={handleReset} 
+              disabled={saving}
+              className="w-full sm:w-auto inline-flex items-center justify-center gap-1.5 px-4 py-1.5 rounded-lg border border-slate-300 text-xs font-semibold text-slate-700 bg-[#a7d4f4] hover:bg-[#95c5ec] transition-all shadow-sm cursor-pointer disabled:opacity-50"
+            >
+              <RotateCcw size={13} /> {editingId ? "Cancel Edit" : "Reset"}
+            </button>
+
+            <button 
+              type="submit" 
+              disabled={saving || (editingId ? !canEdit : !canAdd)}
+              className={`${masterPrimaryButton} w-full sm:w-auto inline-flex items-center justify-center gap-1.5 px-4 py-1.5 rounded-lg disabled:opacity-50 shadow-sm`}
+            >
+              {saving ? <Loader2 size={13} className="animate-spin" /> : <Save size={13} />} 
+              {saving ? "Saving..." : (editingId ? "Update Patient" : "Save Registration")}
+            </button>
+
+            <button 
+              type="button" 
+              onClick={handleSaveAndBilling}
+              disabled={saving || (editingId ? !canEdit : !canAdd)}
+              className={`${masterAccentButton} w-full sm:w-auto inline-flex items-center justify-center gap-1.5 px-4 py-1.5 rounded-lg disabled:opacity-50 shadow-sm`}
+            >
+              {saving ? <Loader2 size={13} className="animate-spin" /> : <Save size={13} />}
+              {saving ? "Saving..." : "Save & Go to Billing"}
+            </button>
+          </div>
 
             </form>
           ) : (
@@ -550,32 +613,32 @@ const PatientsReg = () => {
                 <div className="overflow-x-auto w-full border border-slate-200 rounded-md">
                   <table className="w-full text-center border-collapse">
                     <thead>
-                      <tr className="bg-slate-100 text-slate-700 text-[11px] font-bold border-b border-slate-200">
-                        <th className="p-2 border-r border-slate-200">Patient ID</th>
-                        <th className="p-2 border-r border-slate-200">Full Name</th>
-                        <th className="p-2 border-r border-slate-200">Gender</th>
-                        <th className="p-2 border-r border-slate-200">Mobile</th>
-                        <th className="p-2 border-r border-slate-200">Department</th>
+                      <tr className={masterTableHead}>
+                        <th className={masterTableData}>Patient ID</th>
+                        <th className={masterTableData}>Full Name</th>
+                        <th className={masterTableData}>Gender</th>
+                        <th className={masterTableData}>Mobile</th>
+                        <th className={masterTableData}>Department</th>
                         
-                        <th className="p-2 text-center">Actions</th>
+                        <th className={masterTableData}>Actions</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-200 text-slate-700">
                       {patientsList.map((patient) => (
-                        <tr key={patient._id} className="hover:bg-slate-50 transition-colors">
-                          <td className="p-2 border-r border-slate-200 font-semibold text-[#00b4d8]">{patient.patientId}</td>
-                          <td className="p-2 border-r border-slate-200 font-semibold">{patient.namePrefix} {patient.fullName}</td>
-                          <td className="p-2 border-r border-slate-200">{patient.gender || '-'}</td>
-                          <td className="p-2 border-r border-slate-200">{patient.mobileNumber || '-'}</td>
-                          <td className="p-2 border-r border-slate-200">{patient.department || '-'}</td>
-                          
-                          <td className="p-2 text-center">
+                        <tr key={patient._id} >
+                          <td className={masterTableCell}>{patient.patientId}</td>
+                          <td className={masterTableCell}>{patient.namePrefix} {patient.fullName}</td>
+                          <td className={masterTableCell}>{patient.gender || '-'}</td>
+                          <td className={masterTableCell}>{patient.mobileNumber || '-'}</td>
+                          <td className={masterTableCell}>{patient.department || '-'}</td>
+                           
+                          <td className="p-1 text-center">
                             <div className="inline-flex items-center gap-2">
                               {canEdit && (
                                 <button
                                   type="button"
                                   onClick={() => handleEdit(patient)}
-                                  className="inline-flex items-center gap-1 bg-[#00b4d8] text-white px-2 py-1 rounded text-[10px] font-semibold hover:bg-[#0096c7] transition-all shadow-sm cursor-pointer"
+                                  className={masterEditButton}
                                 >
                                   <Edit size={12} /> Edit
                                 </button>
@@ -584,7 +647,7 @@ const PatientsReg = () => {
                                 <button
                                   type="button"
                                   onClick={() => handleDelete(patient._id, patient.fullName)}
-                                  className="inline-flex items-center gap-1 bg-rose-600 text-white px-2 py-1 rounded text-[10px] font-semibold hover:bg-rose-700 transition-all shadow-sm cursor-pointer"
+                                  className={masterDeleteButton}
                                 >
                                   <Trash2 size={12} /> Delete
                                 </button>
