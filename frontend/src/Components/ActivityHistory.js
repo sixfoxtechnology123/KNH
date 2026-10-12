@@ -180,8 +180,8 @@ const ActivityHistory = () => {
                     <tr key={item._id} className="bg-white border-b border-slate-100 hover:bg-slate-50">
                       <td className={masterTableCell}>{index + 1}</td>
                       <td className={masterTableCell}>{formatDateTime(item.createdAt)}</td>
-                      <td className={`{masterTableCell} font-bold text-sky-700`}>{item.username || "-"}</td>
-                      <td className={`{masterTableCell} font-semibold text-slate-700`}>{item.module || "-"}</td>
+                      <td className={masterTableCell}>{item.username || "-"}</td>
+                      <td className={masterTableCell}>{item.module || "-"}</td>
                       <td className={masterTableCell}>
                         <span className="inline-flex px-2 py-0.5 rounded bg-slate-100 text-slate-700 font-bold">
                           {item.action || "-"}

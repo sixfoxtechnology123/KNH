@@ -7,7 +7,8 @@ import {
   Eye,
   EyeOff,
   KeyRound,
-  LogOut
+  LogOut,
+  Menu
 } from "lucide-react";
 import toast from "react-hot-toast";
 import { api } from "../api/api";
@@ -113,79 +114,84 @@ useEffect(() => {
       {/* Main Layout */}
       <div className={masterDashboardLayout}>
         
-   {/* Simple Header */}
-  <header className={masterHeaderResponsive}>
-    <div className="flex items-center gap-2">
-      <div className={masterHeaderIconBox}>
-        {/* Icon or logo content */}
-      </div>
+{/* Simple Header */}
+   <header className={masterHeaderResponsive}>
+     <div className="flex items-center gap-2 min-w-0 flex-1 pr-2">
+       <div className={masterHeaderIconBox}>
+         {/* Icon or logo content */}
+       </div>
 
-      <div className="flex flex-col leading-none">
-        <h1
-          className={masterDashboardAppName}
-          style={{
-            fontFamily: "'Montserrat', 'Poppins', 'Inter', sans-serif",
-            letterSpacing: "0.20em",
-          }}
-        >
-          KALYANI NURSING HOME
-        </h1>
-      </div>
-    </div>
+       <div className="flex flex-col min-w-0">
+         <h1
+           className={`${masterDashboardAppName} truncate text-xs sm:text-sm md:text-base`}
+           style={{
+             fontFamily: "'Montserrat', 'Poppins', 'Inter', sans-serif",
+             letterSpacing: "0.15em",
+           }}
+         >
+           KALYANI NURSING HOME
+         </h1>
+       </div>
+     </div>
 
-    {/* Right side: Name on left of avatar, with dropdown menu */}
-    <div className="flex items-center gap-3 relative">
-      {currentUser.name && (
-        <span className="text-xs font-semibold text-cyan-100 hidden sm:inline">
-          {currentUser.name}
-        </span>
-      )}
+     {/* Right side: 3-line menu on mobile, avatar on desktop */}
+     <div className="flex items-center gap-3 relative shrink-0">
+       {currentUser.name && (
+         <span className="text-xs font-semibold text-cyan-100 hidden sm:inline">
+           {currentUser.name}
+         </span>
+       )}
 
-      {/* Circular Avatar Button */}
-      <div className="relative" ref={dropdownRef}>
-        <button
-          type="button"
-          onClick={() => setShowProfileDropdown(!showProfileDropdown)}
-          className="flex items-center focus:outline-none cursor-pointer rounded-full ring-2 ring-[#00b4d8] hover:ring-white transition-all"
-        >
-          <img 
-            src={avatarImg} 
-            alt="User Avatar" 
-            className="w-9 h-9 rounded-full object-cover"
-          />
-        </button>
+       {/* Profile Trigger Button */}
+       <div className="relative" ref={dropdownRef}>
+         <button
+           type="button"
+           onClick={() => setShowProfileDropdown(!showProfileDropdown)}
+           className="flex items-center focus:outline-none cursor-pointer rounded-full transition-all"
+         >
+           {/* Avatar image for laptop/desktop */}
+           <img 
+             src={avatarImg} 
+             alt="User Avatar" 
+             className="w-9 h-9 rounded-full object-cover hidden sm:block ring-2 ring-[#00b4d8] hover:ring-white"
+           />
+           {/* 3-line menu icon shown only on mobile */}
+           <div className="text-white hover:text-[#00b4d8] transition-colors sm:hidden p-1">
+             <Menu size={24} />
+           </div>
+         </button>
 
-        {/* Dropdown Menu */}
-        {showProfileDropdown && (
-          <div className="absolute right-0 mt-2 w-44 rounded-lg bg-white py-1.5 shadow-xl border border-slate-200 z-50 text-slate-800">
-            <div className="px-3 py-1.5 border-b border-slate-100 text-[11px] font-bold text-slate-500 truncate">
-              {currentUser.name || "User Account"}
-            </div>
-            <button
-              type="button"
-              onClick={() => {
-                setShowProfileDropdown(false);
-                setShowPasswordModal(true);
-              }}
-              className="w-full text-left px-3 py-2 text-xs font-semibold hover:bg-slate-100 flex items-center gap-2 text-slate-700 cursor-pointer"
-            >
-              <KeyRound size={13} className="text-[#00b4d8]" /> Change Password
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                setShowProfileDropdown(false);
-                handleLogout();
-              }}
-              className="w-full text-left px-3 py-2 text-xs font-semibold hover:bg-rose-50 flex items-center gap-2 text-rose-600 cursor-pointer"
-            >
-              <LogOut size={13} /> Logout
-            </button>
-          </div>
-        )}
-      </div>
-    </div>
-  </header>
+         {/* Dropdown Menu */}
+         {showProfileDropdown && (
+           <div className="absolute right-0 mt-2 w-44 rounded-lg bg-white py-1.5 shadow-xl border border-slate-200 z-50 text-slate-800">
+             <div className="px-3 py-1.5 border-b border-slate-100 text-[11px] font-bold text-slate-500 truncate">
+               {currentUser.name || "User Account"}
+             </div>
+             <button
+               type="button"
+               onClick={() => {
+                 setShowProfileDropdown(false);
+                 setShowPasswordModal(true);
+               }}
+               className="w-full text-left px-3 py-2 text-xs font-semibold hover:bg-slate-100 flex items-center gap-2 text-slate-700 cursor-pointer"
+             >
+               <KeyRound size={13} className="text-[#00b4d8]" /> Change Password
+             </button>
+             <button
+               type="button"
+               onClick={() => {
+                 setShowProfileDropdown(false);
+                 handleLogout();
+               }}
+               className="w-full text-left px-3 py-2 text-xs font-semibold hover:bg-rose-50 flex items-center gap-2 text-rose-600 cursor-pointer"
+             >
+               <LogOut size={13} /> Logout
+             </button>
+           </div>
+         )}
+       </div>
+     </div>
+   </header>
 
         <main className={masterDashboardMainContainer}>
       

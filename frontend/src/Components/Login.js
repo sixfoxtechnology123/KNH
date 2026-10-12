@@ -139,19 +139,22 @@ const Login = () => {
             </button>
           </div>
 
-          {/* Captcha Section (Aligned in Single Row as requested[cite: 1]) */}
-          <div>
-            <label className={masterInputLabel}>CAPTCHA *</label>
-            <div className={masterCaptchaRow}>
-              <input
-                type="text"
-                value={captchaInput}
-                onChange={(e) => setCaptchaInput(e.target.value.toLowerCase().replace(/[^a-z0-9]/g, ''))}
-                required
-                maxLength={6}
-                placeholder="Enter captcha code"
-                className={masterLoginInput}
-              />
+        <div>
+          <label className={masterInputLabel}>CAPTCHA *</label>
+          <div className={masterCaptchaRow}>
+            {/* Input field takes full width on mobile, flexible on desktop */}
+            <input
+              type="text"
+              value={captchaInput}
+              onChange={(e) => setCaptchaInput(e.target.value.toLowerCase().replace(/[^a-z0-9]/g, ''))}
+              required
+              maxLength={6}
+              placeholder="Enter code"
+              className={`${masterLoginInput} w-full sm:flex-1`}
+            />
+            
+            {/* Captcha box and icon grouped together in a single row */}
+            <div className="flex items-center gap-2 w-full sm:w-auto">
               <div className={masterCaptchaBox}>
                 {captcha}
               </div>
@@ -165,6 +168,7 @@ const Login = () => {
               </button>
             </div>
           </div>
+        </div>
 
           <button 
             type="submit" 

@@ -471,8 +471,8 @@ const handlePermissionToggle = (menuKey, actionKey) => {
               <div className="space-y-1.5 px-3">
                 <label className="font-bold text-slate-700 text-xs">Dashboard Menu Permissions Control</label>
                 
-                <div className="border border-slate-200 rounded-md overflow-hidden bg-slate-50/50">
-                  <table className="w-full text-left border-collapse">
+                <div className="border border-slate-200 rounded-md overflow-x-auto bg-slate-50/50">
+                  <table className="w-full min-w-[550px] text-left border-collapse">
                     <thead>
                       <tr className="bg-slate-200 text-slate-700 text-[11px] font-bold">
                         <th className="p-2">Dashboard Menu / Module</th>
