@@ -1,8 +1,37 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useMemo } from "react";
+import SearchBar from "../GlobalComponent/SearchBar";
 import { Activity, Home, Loader2, RefreshCcw } from "lucide-react";
 import toast from "react-hot-toast";
 import { api } from "../api/api";
 
+
+
+import {
+  masterPrimaryButton,
+  masterAccentButton,
+  masterInputLabel,
+  masterInput,
+  masterHeaderResponsive,
+  masterHeaderIconBox,
+  masterHeaderTitle,
+  masterHeaderActionWrap,
+  masterHeaderFlexBtn,
+ masterAddRow,
+  masterSelect,
+  masterTableCell,
+  masterHeading,
+  masterHeadingBordersection,
+  masterHeaderBar,
+  masterListView,
+ 
+  masterEditButton,
+  masterDeleteButton,
+  masterTableHead,
+  masterTableData,
+ 
+ 
+} from "../GlobalComponent/masterPageStyles";
+  
 const formatDateTime = (value) => {
   if (!value) return "-";
   return new Date(value).toLocaleString("en-IN", {
@@ -19,6 +48,9 @@ const formatDateTime = (value) => {
 const ActivityHistory = () => {
   const [activities, setActivities] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
 
   const fetchActivities = async () => {
     setLoading(true);
@@ -38,6 +70,40 @@ const ActivityHistory = () => {
   useEffect(() => {
     fetchActivities();
   }, []);
+
+
+  const filteredActivities = useMemo(() => {
+    const sorted = [...activities].sort((a, b) => {
+      const dateA = new Date(a.createdAt || 0);
+      const dateB = new Date(b.createdAt || 0);
+      return dateB - dateA;
+    });
+
+    const q = searchTerm.trim().toLowerCase();
+    if (!q) return sorted;
+
+    return sorted.filter((item) => {
+      const username = (item.username || item.userId || item.name || "").toLowerCase();
+      const moduleName = (item.module || "").toLowerCase();
+      return (
+        username.includes(q) ||
+        moduleName.includes(q)
+      );
+    });
+  }, [activities, searchTerm]);
+
+  const paginatedActivities = useMemo(() => {
+    const numPageSize = Number(pageSize) || 18;
+    const numCurrentPage = Number(currentPage) || 1;
+    if (numPageSize === -1) return filteredActivities;
+    const start = (numCurrentPage - 1) * numPageSize;
+    return filteredActivities.slice(start, start + numPageSize);
+  }, [filteredActivities, currentPage, pageSize]);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm, pageSize]);
+
 
   return (
     <div className="w-full min-h-screen bg-[#f0f6fa] flex flex-col font-sans text-xs">
@@ -72,9 +138,20 @@ const ActivityHistory = () => {
 
       <main className="w-full flex-1 p-2.5">
         <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-3 space-y-2">
-          <div className="bg-[#00b4d8] text-white px-3 py-1.5 rounded-md flex items-center justify-between font-bold text-xs shadow-sm">
-            <span>All User Activity</span>
-            <span className="text-[11px] font-normal">Total Records: {activities.length}</span>
+          <div className="border-b border-slate-200 pb-2">
+            <SearchBar 
+              value={searchTerm} 
+              onChange={(val) => {
+                setSearchTerm(val);
+                setCurrentPage(1);
+              }} 
+              placeholder="Search by username, module, action or description..." 
+              totalItems={filteredActivities.length} 
+              currentPage={currentPage} 
+              pageSize={pageSize} 
+              onPageChange={setCurrentPage} 
+              onPageSizeChange={setPageSize} 
+            />
           </div>
 
           {loading ? (
@@ -86,29 +163,31 @@ const ActivityHistory = () => {
               No activity found.
             </div>
           ) : (
-            <div className="border border-slate-200 rounded-md overflow-x-auto bg-slate-50/50 p-1">
-              <table className="w-full text-left border-collapse">
-                <thead>
-                  <tr className="bg-slate-200 text-slate-700 text-center text-[11px] font-bold">
-                    <th className="p-1.5">Date & Time</th>
-                    <th className="p-1.5">User</th>
-                    <th className="p-1.5">Module</th>
-                    <th className="p-1.5">Action</th>
-                    <th className="p-1.5 text-left">Description</th>
+            <div className="overflow-x-auto w-full border border-slate-200 rounded-md">
+                 <table className="w-full text-center border-collapse">
+                    <thead>
+                      <tr className={masterTableHead}>
+                    <th className={masterTableData}>Sl</th>
+                    <th className={masterTableData}>Date & Time</th>
+                    <th className={masterTableData}>User</th>
+                    <th className={masterTableData}>Module</th>
+                    <th className={masterTableData}>Action</th>
+                    <th className={masterTableData}>Description</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {activities.map((item) => (
+                  {paginatedActivities.map((item, index) => (
                     <tr key={item._id} className="bg-white border-b border-slate-100 hover:bg-slate-50">
-                      <td className="p-1.5 text-center whitespace-nowrap text-slate-600">{formatDateTime(item.createdAt)}</td>
-                      <td className="p-1.5 text-center font-bold text-sky-700">{item.username || "-"}</td>
-                      <td className="p-1.5 text-center font-semibold text-slate-700">{item.module || "-"}</td>
-                      <td className="p-1.5 text-center">
+                      <td className={masterTableCell}>{index + 1}</td>
+                      <td className={masterTableCell}>{formatDateTime(item.createdAt)}</td>
+                      <td className={`{masterTableCell} font-bold text-sky-700`}>{item.username || "-"}</td>
+                      <td className={`{masterTableCell} font-semibold text-slate-700`}>{item.module || "-"}</td>
+                      <td className={masterTableCell}>
                         <span className="inline-flex px-2 py-0.5 rounded bg-slate-100 text-slate-700 font-bold">
                           {item.action || "-"}
                         </span>
                       </td>
-                      <td className="p-1.5 text-slate-700">{item.description || "-"}</td>
+                      <td className={masterTableCell}>{item.description || "-"}</td>
                     </tr>
                   ))}
                 </tbody>

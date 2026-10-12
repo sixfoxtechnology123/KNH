@@ -1,4 +1,5 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef,useMemo } from "react";
+import SearchBar from '../GlobalComponent/SearchBar';
 import { useSearchParams } from "react-router-dom";
 import { 
   FileText, 
@@ -60,6 +61,9 @@ const formatDateToDMY = (dateStr) => {
 const PatientsBilling = () => {
   const currentUser = JSON.parse(localStorage.getItem("currentUser") || "{}");
   const billingPermissions = currentUser.permissions?.patients_billing || {};
+  const [billSearchTerm, setBillSearchTerm] = useState("");
+  const [currentBillPage, setCurrentBillPage] = useState(1);
+  const [billPageSize, setBillPageSize] = useState(10);
   const isAdmin = currentUser.role === "Admin";
   const canAdd = isAdmin || billingPermissions.add;
   const canEdit = isAdmin || billingPermissions.edit;
@@ -428,6 +432,36 @@ const PatientsBilling = () => {
     setItems([{ id: 1, description: "", rate: "", unit: "", amount: "" }]);
   };
 
+  const filteredBills = useMemo(() => {
+    const sorted = [...savedBills].sort((a, b) => {
+      const idA = String(a.billNo || a._id || '');
+      const idB = String(b.billNo || b._id || '');
+      return idB.localeCompare(idA, undefined, { numeric: true, sensitivity: 'base' });
+    });
+
+    const q = billSearchTerm.trim().toLowerCase();
+    if (!q) return sorted;
+
+    return sorted.filter((bill) => {
+      const name = (bill.fullName || '').toLowerCase();
+      const billNo = (bill.billNo || '').toLowerCase();
+      const phone = (bill.mobileNumber || '').toLowerCase();
+      return name.includes(q) || billNo.includes(q) || phone.includes(q);
+    });
+  }, [savedBills, billSearchTerm]);
+
+  const paginatedBills = useMemo(() => {
+    const numPageSize = Number(billPageSize) || 18;
+    const numCurrentPage = Number(currentBillPage) || 1;
+    if (numPageSize === -1) return filteredBills;
+    const start = (numCurrentPage - 1) * numPageSize;
+    return filteredBills.slice(start, start + numPageSize);
+  }, [filteredBills, currentBillPage, billPageSize]);
+
+  useEffect(() => {
+    setCurrentBillPage(1);
+  }, [billSearchTerm, billPageSize]);
+
   return (
     <div className="w-full min-h-screen bg-[#f0f6fa] flex flex-col font-sans text-xs">
       
@@ -490,45 +524,58 @@ const PatientsBilling = () => {
       {/* Main Content Area */}
       <main className="w-full flex-1 p-2 flex flex-col print:hidden">
        <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-2.5 space-y-2 w-full">
-          
-          {viewMode ? (
+         {viewMode ? (
             /* SAVED BILLS TABLE VIEW */
             <div className="space-y-2">
-              <div className="bg-[#00b4d8] text-white px-2.5 py-1.5 rounded-md flex items-center justify-between font-bold text-xs shadow-sm">
-                <span>Saved Bills Directory</span>
-                <span className="text-[11px] font-normal">Total Records: {savedBills.length}</span>
+              <div className="border-b border-slate-200 flex-shrink-0">
+                <SearchBar 
+                  value={billSearchTerm} 
+                  onChange={(val) => {
+                    setBillSearchTerm(val);
+                    setCurrentBillPage(1);
+                  }} 
+                  placeholder="Search by bill no, patient name or mobile..." 
+                  totalItems={filteredBills.length} 
+                  currentPage={currentBillPage} 
+                  pageSize={billPageSize} 
+                  onPageChange={setCurrentBillPage} 
+                  onPageSizeChange={setBillPageSize} 
+                />
               </div>
 
               {loadingBills ? (
                 <div className="flex justify-center items-center py-12 text-slate-500 gap-2">
                   <Loader2 className="animate-spin" size={20} /> Loading bills...
                 </div>
-              ) : savedBills.length === 0 ? (
+              ) : filteredBills.length === 0 ? (
                 <div className="text-center py-10 text-slate-400 text-xs">
-                  No saved bills found. Create a new bill and save it to view it here.
+                  No matching bills found.
                 </div>
               ) : (
-                <div className="border border-slate-200 rounded-md overflow-x-auto bg-slate-50/50 p-1">
-                  <table className="w-full text-left border-collapse">
-                    <thead>
-                      <tr className="bg-slate-200 text-slate-700 text-center text-[11px] font-bold">
-                        <th className="p-1.5">Bill ID</th>
-                        <th className="p-1.5">Date</th>
-                        <th className="p-1.5 text-left">Patient Name</th>
-                        <th className="p-1.5">Phone</th>
-                        <th className="p-1.5 text-right">Net Amount</th>
-                        <th className="p-1.5 text-center">Actions</th>
+                 <div className="overflow-x-auto w-full border border-slate-200 rounded-md">
+                     <table className="w-full text-center border-collapse">
+                        <thead>
+                          <tr className={masterTableHead}>
+                        <th className={masterTableData}>Sl</th>
+                        <th className={masterTableData}>Bill ID</th>
+                        <th className={masterTableData}>Date</th>
+                        <th className={masterTableData}>Patient Name</th>
+                        <th className={masterTableData}>Phone</th>
+                        <th className={masterTableData}>Net Amount</th>
+                        <th className={masterTableData}>Actions</th>
                       </tr>
                     </thead>
-                    <tbody>
-                      {savedBills.map((bill) => (
-                        <tr key={bill._id} className="bg-white border-b border-slate-100 hover:bg-slate-50">
-                          <td className="p-1.5 text-center font-bold text-sky-700">{bill.billNo}</td>
-                          <td className="p-1.5 text-center text-slate-600">{bill.billDate}</td>
-                          <td className="p-1.5 font-medium text-slate-800">{bill.fullName}</td>
-                          <td className="p-1.5 text-center text-slate-600">{bill.mobileNumber || "N/A"}</td>
-                          <td className="p-1.5 text-right font-semibold text-slate-800">₹ {(bill.netAmount || 0).toFixed(2)}</td>
-                          <td className="p-1.5 text-center flex justify-center gap-1.5">
+                     <tbody className="divide-y divide-slate-200 text-slate-700">
+                      {paginatedBills.map((bill, index) => (
+                        <tr key={bill._id} className={masterTableCell}>
+                          
+                          <td className={masterTableCell}>{index + 1}</td>
+                          <td className={masterTableCell}>{bill.billNo}</td>
+                          <td className={masterTableCell}>{bill.billDate}</td>
+                          <td className={masterTableCell}>{bill.fullName}</td>
+                          <td className={masterTableCell}>{bill.mobileNumber || "N/A"}</td>
+                          <td className={masterTableCell}>₹ {(bill.netAmount || 0).toFixed(2)}</td>
+                          <td className={`{masterTableCell} flex justify-center items-center gap-1.5`}>
                             <button
                               type="button"
                               onClick={() => {

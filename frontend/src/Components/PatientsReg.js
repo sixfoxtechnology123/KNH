@@ -1,5 +1,6 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect,useMemo } from "react";
 import { useNavigate } from "react-router-dom";
+import SearchBar from '../GlobalComponent/SearchBar';
 import { 
   UserPlus, 
   Home, 
@@ -37,6 +38,9 @@ import {
 
 const PatientsReg = () => {
   const navigate = useNavigate();
+  const [searchTerm, setSearchTerm] = useState('');
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
   const currentUser = JSON.parse(localStorage.getItem("currentUser") || "{}");
   const patientPermissions = currentUser.permissions?.patients_registration || {};
   const isAdmin = currentUser.role === "Admin";
@@ -48,6 +52,7 @@ const PatientsReg = () => {
   const [patientsList, setPatientsList] = useState([]);
   const [loadingList, setLoadingList] = useState(false);
   const [editingId, setEditingId] = useState(null);
+  const showActions = canEdit || canDelete;
 
   const [formData, setFormData] = useState({
     prefix: "",
@@ -332,6 +337,35 @@ const PatientsReg = () => {
     });
   };
 
+
+
+  const filteredData = useMemo(() => {
+    const sortedList = [...patientsList].sort((a, b) => {
+      const idA = String(a.patientId || a._id || '');
+      const idB = String(b.patientId || b._id || '');
+      return idB.localeCompare(idA, undefined, { numeric: true, sensitivity: 'base' });
+    });
+
+    const q = searchTerm.trim().toLowerCase();
+    if (!q) return sortedList;
+
+    return sortedList.filter((item) => {
+      const fullName = (item.fullName || '').toLowerCase();
+      const patientId = (item.patientId || '').toLowerCase();
+      const mobileNumber = (item.mobileNumber || '').toLowerCase();
+      return fullName.includes(q) || patientId.includes(q) || mobileNumber.includes(q);
+    });
+  }, [patientsList, searchTerm]);
+
+  const paginatedData = useMemo(() => {
+    if (pageSize === -1) return filteredData;
+    const start = (currentPage - 1) * pageSize;
+    return filteredData.slice(start, start + pageSize);
+  }, [filteredData, currentPage, pageSize]);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm, pageSize]);
   return (
     <div className="w-full min-h-screen bg-[#f0f6fa] flex flex-col font-sans text-xs">
       
@@ -600,9 +634,23 @@ const PatientsReg = () => {
             </form>
           ) : (
             /* PATIENT LIST VIEW TABLE */
-            <div className="space-y-3">
-              <div className="flex items-center justify-between border-b pb-2">
-                <h2 className="font-bold text-slate-700 text-sm">All Registered Patients ({patientsList.length})</h2>
+          <div className="space-y-3">
+              <div className="border-b border-slate-200 flex-shrink-0 p-2 sm:p-2 overflow-x-auto">
+                <div className="min-w-[280px]">
+                  <SearchBar 
+                    value={searchTerm} 
+                    onChange={(val) => {
+                      setSearchTerm(val);
+                      setCurrentPage(1);
+                    }} 
+                    placeholder="Search by name, ID or mobile..." 
+                    totalItems={filteredData.length} 
+                    currentPage={currentPage} 
+                    pageSize={pageSize} 
+                    onPageChange={setCurrentPage} 
+                    onPageSizeChange={setPageSize} 
+                  />
+                </div>
               </div>
 
               {loadingList ? (
@@ -614,24 +662,29 @@ const PatientsReg = () => {
                   <table className="w-full text-center border-collapse">
                     <thead>
                       <tr className={masterTableHead}>
+                        <th className={masterTableData}>Sl</th>
                         <th className={masterTableData}>Patient ID</th>
                         <th className={masterTableData}>Full Name</th>
                         <th className={masterTableData}>Gender</th>
                         <th className={masterTableData}>Mobile</th>
                         <th className={masterTableData}>Department</th>
                         
+                        {showActions && (
                         <th className={masterTableData}>Actions</th>
+                      )}
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-200 text-slate-700">
-                      {patientsList.map((patient) => (
+                      {paginatedData.map((patient,inex) => (
                         <tr key={patient._id} >
+                          <td className={masterTableCell}>{(currentPage - 1) * pageSize + inex + 1}</td>
                           <td className={masterTableCell}>{patient.patientId}</td>
                           <td className={masterTableCell}>{patient.namePrefix} {patient.fullName}</td>
                           <td className={masterTableCell}>{patient.gender || '-'}</td>
                           <td className={masterTableCell}>{patient.mobileNumber || '-'}</td>
                           <td className={masterTableCell}>{patient.department || '-'}</td>
                            
+                         {showActions && (
                           <td className="p-1 text-center">
                             <div className="inline-flex items-center gap-2">
                               {canEdit && (
@@ -654,6 +707,7 @@ const PatientsReg = () => {
                               )}
                             </div>
                           </td>
+                        )}
                         </tr>
                       ))}
                     </tbody>
