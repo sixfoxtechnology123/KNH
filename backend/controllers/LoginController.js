@@ -11,18 +11,6 @@ const loginUser = async (req, res) => {
       return res.status(400).json({ success: false, message: 'Username and password are required.' });
     }
 
-    // Auto-seed default developer account if database has no users yet
-    const userCount = await LoginModel.countDocuments();
-    if (userCount === 0) {
-      const hashedPassword = await bcrypt.hash('sixfox@2026', 10);
-      await LoginModel.create({
-        username: 'sixfox',
-        name: 'Sixfox Technology',
-        password: hashedPassword,
-        role: 'Admin'
-      });
-    }
-
     const user = await LoginModel.findOne({ username });
     const loginName = user?.username;
 

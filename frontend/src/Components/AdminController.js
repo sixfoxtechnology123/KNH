@@ -328,32 +328,37 @@ const handlePermissionToggle = (menuKey, actionKey) => {
                     <td className="p-1.5 text-center font-semibold text-slate-700 border-r border-slate-300">{usr.role || "-"}</td>
 
                     <td className="p-1.5 text-center border-r border-slate-300">
-                      <div className="flex flex-wrap justify-center gap-1 max-w-xs mx-auto">
-                        {usr.permissions && Object.entries(usr.permissions).map(([moduleKey, perms]) => {
-                          // Check if at least one permission is true for this module
-                          const hasAnyPermission = perms && Object.values(perms).some(Boolean);
-                          if (!hasAnyPermission) return null; // Skip modules with zero permissions
+                              <div className="flex flex-wrap justify-center gap-1 max-w-xs mx-auto">
+                                {usr.permissions?.ALL ? (
+                                  <span className="inline-flex items-center bg-cyan-50 text-cyan-800 border border-cyan-200 px-1.5 py-0.5 rounded text-[10px] font-semibold">
+                                    ALL
+                                  </span>
+                                ) : (
+                                  usr.permissions && Object.entries(usr.permissions).map(([moduleKey, perms]) => {
+                                    if (moduleKey === 'ALL') return null;
+                                    const hasAnyPermission = perms && Object.values(perms).some(Boolean);
+                                    if (!hasAnyPermission) return null;
 
-                          // Format module key nicely (e.g., "patients_registration" -> "Patients Registration")
-                          const moduleName = moduleKey
-                            .split('_')
-                            .map(word => word.charAt(0).toUpperCase() + word.slice(1))
-                            .join(' ');
+                                    const moduleName = moduleKey
+                                      .split('_')
+                                      .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+                                      .join(' ');
 
-                          return (
-                            <span 
-                              key={moduleKey} 
-                              className="inline-flex items-center bg-cyan-50 text-cyan-800 border border-cyan-200 px-1.5 py-0.5 rounded text-[10px] font-semibold"
-                            >
-                              {moduleName}
-                            </span>
-                          );
-                        })}
-                        {(!usr.permissions || Object.values(usr.permissions).every(p => !Object.values(p).some(Boolean))) && (
-                          <span className="text-slate-400 italic">No permissions assigned</span>
-                        )}
-                      </div>
-                    </td>
+                                    return (
+                                      <span 
+                                        key={moduleKey} 
+                                        className="inline-flex items-center bg-cyan-50 text-cyan-800 border border-cyan-200 px-1.5 py-0.5 rounded text-[10px] font-semibold"
+                                      >
+                                        {moduleName}
+                                      </span>
+                                    );
+                                  })
+                                )}
+                                {!usr.permissions?.ALL && (!usr.permissions || Object.values(usr.permissions).every(p => !Object.values(p).some(Boolean))) && (
+                                  <span className="text-slate-400 italic">No permissions assigned</span>
+                                )}
+                              </div>
+                            </td>
 
                     <td className="p-1.5 text-center flex justify-center gap-1.5">
                       {canEdit && (

@@ -53,7 +53,10 @@ const Dashboard = () => {
     confirmPassword: "",
   });
 
-  const canView = (key) => permissions[key]?.view === true;
+  const canView = (key) => {
+  if (isAdmin || permissions.ALL === true) return true;
+  return permissions[key]?.view === true;
+};
 
   const openModule = (path, moduleName) => {
     localStorage.setItem("activeModule", moduleName);

@@ -31,8 +31,8 @@ const createCaptcha = () => {
 
 const Login = () => {
   const navigate = useNavigate();
-  const [username, setUsername] = useState('sixfox');
-  const [password, setPassword] = useState('sixfox@2026');
+  const [username, setUsername] = useState('');
+  const [password, setPassword] = useState('');
   const [captcha, setCaptcha] = useState(createCaptcha);
   const [captchaInput, setCaptchaInput] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -100,7 +100,7 @@ const Login = () => {
         )}
 
         <form onSubmit={handleLogin} className={masterLoginForm}>
-          {/* Username Field */}
+       {/* Username Field */}
           <div className={masterLoginInputWrap}>
             <span className={masterLoginInputIcon}>
               <User size={18} />
@@ -110,6 +110,7 @@ const Login = () => {
               value={username} 
               onChange={(e) => setUsername(e.target.value)} 
               required
+              autoComplete="new-password"
               placeholder="User ID"
               className={masterLoginInput}
             />
@@ -125,6 +126,7 @@ const Login = () => {
               value={password} 
               onChange={(e) => setPassword(e.target.value)} 
               required
+              autoComplete="new-password"
               placeholder="Password"
               className={masterLoginPasswordInput}
             />
