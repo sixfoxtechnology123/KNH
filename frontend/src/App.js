@@ -7,6 +7,7 @@ import PatientsBilling from "./Components/PatientBilling";
 import Login from "./Components/Login"; // <-- Added Login import
 import AdminController from "./Components/AdminController";
 import ActivityHistory from "./Components/ActivityHistory";
+import ItemMaster from "./Components/ItemMaster";
 
 const ProtectedRoute = ({ children }) => {
   return localStorage.getItem("token") ? children : <Navigate to="/" replace />;
@@ -88,6 +89,7 @@ function App() {
           <Route path="/patients-billing" element={<PermissionRoute permissionKey="patients_billing"><PatientsBilling /></PermissionRoute>} />
           <Route path="/admin-control" element={<PermissionRoute permissionKey="admin_controller"><AdminController /></PermissionRoute>} />
           <Route path="/activity-history" element={<PermissionRoute permissionKey="activity_history"><ActivityHistory /></PermissionRoute>} />
+          <Route path="/Item-Master" element={<PermissionRoute permissionKey="ItemMaster"><ItemMaster /></PermissionRoute>} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </div>

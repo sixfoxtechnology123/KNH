@@ -35,7 +35,7 @@ export const masterSectionHeaderBar = 'bg-[#1c5762] text-white px-3.5 py-2 flex 
 export const masterInputLabel = 'block text-[11px] font-bold text-slate-700 mb-1';
 export const masterHeading="rounded-xl border border-[rgba(125,166,172,0.5)] bg-white overflow-hidden shadow-[0_8px_24px_-4px_rgba(28,87,98,0.3)]"
 export const masterHeadingBordersection="bg-[#1c5762] text-white px-3.5 py-2 flex items-center gap-1.5 font-bold text-xs"
-export const masterInput = 'w-full rounded-md border border-slate-300 bg-white px-3 py-1  font-medium text-xs text-slate-900 outline-none transition focus:border-[#00b4d8] focus:ring-2 focus:ring-[#00b4d8]/15';
+export const masterInput = ' capitalize w-full rounded-md border border-slate-300 bg-white px-3 py-1  font-medium text-xs text-slate-900 outline-none transition focus:border-[#00b4d8] focus:ring-2 focus:ring-[#00b4d8]/15';
 export const masterSelect = 'w-full rounded-md border border-slate-300 bg-white px-3 py-1 text-xs text-slate-900 font-medium outline-none transition focus:border-[#00b4d8] focus:ring-2 focus:ring-[#00b4d8]/15';
 export const masterSectionTitle = 'text-xs font-bold text-slate-900 border-b border-slate-100 pb-2 mb-3 tracking-wide uppercase';
 

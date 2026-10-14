@@ -64,12 +64,14 @@ const billingRoutes = require('./routes/billingRoutes');
 const loginRoutes = require('./routes/LoginRoutes'); 
 const adminRoutes = require('./routes/adminRoutes');
 const activityHistoryRoutes = require('./routes/activityHistoryRoutes');
+const itemMasterRoutes = require('./routes/itemMasterRoutes');
 
 app.use('/hms/patients', patientsRoutes);
 app.use('/hms/billing', billingRoutes);
 app.use('/auth', loginRoutes); 
 app.use('/hms/admin', adminRoutes);
 app.use('/hms/activity-history', activityHistoryRoutes);
+app.use('/hms/items', itemMasterRoutes);
 
 app.listen(PORT, () => {
   console.log(`Server is running securely on port ${PORT}`);

@@ -152,6 +152,7 @@ const PatientsReg = () => {
 
     let processedValue = value;
 
+    
     // Strict number validation for phone numbers and PIN codes
     const numericFields = ["mobileNumber", "emergencyNumber", "pinCode", "kinPhone", "kinPinCode"];
     if (numericFields.includes(name)) {
@@ -175,7 +176,16 @@ const PatientsReg = () => {
       return;
     }
     if (!editingId && !canAdd) {
-      toast.error("You do not have add permission.");
+      toast.error("You do not have add permission.", { id: 'avail-qty-err' });
+      return;
+    }
+    if (!formData.mobileNumber || formData.mobileNumber.length !== 10) {
+      toast.error("Please enter a valid 10-digit mobile number.");
+      return;
+    }
+
+    if (formData.kinPhone && formData.kinPhone.length !== 10) {
+      toast.error("Kin Phone Number must be exactly 10 digits.", { id: 'avail-qty-err' });
       return;
     }
     setSaving(true);
@@ -211,6 +221,15 @@ const PatientsReg = () => {
     }
     if (!editingId && !canAdd) {
       toast.error("You do not have add permission.");
+      return;
+    }
+    if (!formData.mobileNumber || formData.mobileNumber.length !== 10) {
+      toast.error("Please enter a valid 10-digit mobile number.", { id: 'avail-qty-err' });
+      return;
+    }
+
+    if (formData.kinPhone && formData.kinPhone.length !== 10) {
+      toast.error("Kin Phone Number must be exactly 10 digits.", { id: 'avail-qty-err' });
       return;
     }
     setSaving(true);
@@ -346,13 +365,13 @@ const PatientsReg = () => {
       return idB.localeCompare(idA, undefined, { numeric: true, sensitivity: 'base' });
     });
 
-    const q = searchTerm.trim().toLowerCase();
+    const q = searchTerm.trim();
     if (!q) return sortedList;
 
     return sortedList.filter((item) => {
-      const fullName = (item.fullName || '').toLowerCase();
-      const patientId = (item.patientId || '').toLowerCase();
-      const mobileNumber = (item.mobileNumber || '').toLowerCase();
+      const fullName = (item.fullName || '');
+      const patientId = (item.patientId || '');
+      const mobileNumber = (item.mobileNumber || '');
       return fullName.includes(q) || patientId.includes(q) || mobileNumber.includes(q);
     });
   }, [patientsList, searchTerm]);
@@ -448,10 +467,16 @@ const PatientsReg = () => {
                     <option value="Other">Other</option>
                   </select>
                 </div>
-
                 <div>
                   <label className={masterInputLabel}>DOB</label>
-                  <input type="date" name="dob" value={formData.dob} onChange={handleChange} className={masterInput} />
+                  <input 
+                    type="date" 
+                    name="dob" 
+                    value={formData.dob} 
+                    onChange={handleChange} 
+                    max={new Date().toISOString().split("T")[0]} 
+                    className={masterInput} 
+                  />
                 </div>
 
                 <div>
@@ -476,7 +501,22 @@ const PatientsReg = () => {
 
                 <div>
                   <label className={masterInputLabel}>Blood Group</label>
-                  <input type="text" name="bloodGroup" value={formData.bloodGroup} onChange={handleChange} placeholder="e.g. A+" className={masterInput} />
+                  <select 
+                    name="bloodGroup" 
+                    value={formData.bloodGroup} 
+                    onChange={handleChange} 
+                    className={masterInput}
+                  >
+                    <option value="">Select Blood Group</option>
+                    <option value="A+">A+</option>
+                    <option value="A-">A-</option>
+                    <option value="B+">B+</option>
+                    <option value="B-">B-</option>
+                    <option value="AB+">AB+</option>
+                    <option value="AB-">AB-</option>
+                    <option value="O+">O+</option>
+                    <option value="O-">O-</option>
+                  </select>
                 </div>
 
                 <div>

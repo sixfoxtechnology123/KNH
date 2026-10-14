@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef,useMemo } from "react";
 import SearchBar from '../GlobalComponent/SearchBar';
+import ItemMaster from "./ItemMaster"; 
 import { useSearchParams } from "react-router-dom";
 import { 
   FileText, 
@@ -14,7 +15,8 @@ import {
   Search,
   ArrowLeft,
   Edit,
-  Check
+  Check,
+  RefreshCw
 } from "lucide-react";
 import toast from "react-hot-toast";
 import { api } from "../api/api";
@@ -81,9 +83,41 @@ const PatientsBilling = () => {
   const [editingBillId, setEditingBillId] = useState(null);
   const [printingInvoice, setPrintingInvoice] = useState(null);
   const [searchParams] = useSearchParams();
+  const [activeMasterItems, setActiveMasterItems] = useState([]);
+  const [showItemMasterModal, setShowItemMasterModal] = useState(false);
   const urlPatientId = searchParams.get("patientId");
 
   const searchRef = useRef(null);
+
+
+const fetchActiveMasterItems = async () => {
+    try {
+      const res = await api.get('/hms/items/all');
+      if (res.data.success) {
+        const activeList = (res.data.data || []).filter(i => i.status === 'Active');
+        setActiveMasterItems(activeList);
+
+        // Automatically populate all active master items as rows with default unit = 1 and unchecked by default
+        const initialTableItems = activeList.map((masterItem, idx) => ({
+          id: masterItem._id || idx,
+          description: masterItem.itemId, // Stores Item ID (e.g. ITEM-1) in database
+          itemName: masterItem.itemName,
+          rate: masterItem.rate,
+          unit: 1,
+          amount: masterItem.rate * 1,
+          isChecked: false,
+        }));
+        setItems(initialTableItems);
+      }
+    } catch (err) {
+      console.error("Error fetching active items", err);
+      toast.error("Failed to load master items.");
+    }
+  };
+
+  useEffect(() => {
+    fetchActiveMasterItems();
+  }, []);
 
   useEffect(() => {
     if (urlPatientId && patients.length > 0) {
@@ -152,6 +186,8 @@ const PatientsBilling = () => {
     fetchPatients();
   }, []);
 
+  
+
   const fetchPatients = async () => {
     try {
       const response = await api.get('/hms/patients/all');
@@ -183,10 +219,10 @@ const PatientsBilling = () => {
     if (!searchTerm.trim()) {
       setFilteredPatients(patients);
     } else {
-      const term = searchTerm.toLowerCase();
+      const term = searchTerm;
       const results = patients.filter(p => 
-        (p.fullName && p.fullName.toLowerCase().includes(term)) ||
-        (p.patientId && p.patientId.toLowerCase().includes(term)) ||
+        (p.fullName && p.fullName.includes(term)) ||
+        (p.patientId && p.patientId.includes(term)) ||
         (p.mobileNumber && p.mobileNumber.includes(term))
       );
       setFilteredPatients(results);
@@ -248,12 +284,20 @@ const PatientsBilling = () => {
     );
   };
 
-  const handleAddItem = () => {
-    setItems(prev => [
-      ...prev, 
-      { id: Date.now(), description: "", rate: "", unit: "", amount: "" }
-    ]);
-  };
+const handleAddItem = () => {
+  setItems(prev => [
+    ...prev, 
+    { 
+      id: Date.now(), 
+      description: "", 
+      rate: "", 
+      unit: 1, 
+      amount: "", 
+      isChecked: true, 
+      isCustom: true // Marks this as a manually typed item row
+    }
+  ]);
+};
 
   const handleRemoveItem = (id) => {
     if (items.length === 1) {
@@ -263,8 +307,10 @@ const PatientsBilling = () => {
     setItems(prev => prev.filter(item => item.id !== id));
   };
 
-  // Financial Calculations
-  const subTotal = items.reduce((acc, curr) => acc + (parseFloat(curr.amount) || 0), 0);
+// Financial Calculations - Only calculate checked items
+  const subTotal = items
+    .filter(item => item.isChecked)
+    .reduce((acc, curr) => acc + (parseFloat(curr.amount) || 0), 0);
   const discountVal = parseFloat(billingData.discount) || 0;
   const netAmount = Math.max(0, subTotal - discountVal);
   const advancedVal = parseFloat(billingData.advanced) || 0;
@@ -310,12 +356,14 @@ const PatientsBilling = () => {
         discount: billingData.discount === "" ? 0 : discountVal,
         advanced: billingData.advanced === "" ? 0 : advancedVal,
         returnAmount: advancedVal > netAmount ? computedReturnAmount : (billingData.returnAmount === "" ? 0 : returnVal),
-        items: items.map(i => ({
-          ...i,
-          rate: i.rate === "" ? 0 : Number(i.rate),
-          unit: i.unit === "" ? 1 : Number(i.unit),
-          amount: i.amount === "" ? 0 : Number(i.amount)
-        })),
+        items: items
+          .filter(i => i.isChecked)
+          .map(i => ({
+            ...i,
+            rate: i.rate === "" ? 0 : Number(i.rate),
+            unit: i.unit === "" ? 1 : Number(i.unit),
+            amount: i.amount === "" ? 0 : Number(i.amount)
+          })),
         subTotal,
         netAmount,
         balanceAmount,
@@ -381,11 +429,16 @@ const PatientsBilling = () => {
       advanced: bill.advanced || "",
       returnAmount: bill.returnAmount || "",
     });
-    setItems(
-  bill.items && bill.items.length > 0 
-    ? bill.items.map((i, index) => ({ ...i, id: i._id || i.id || Date.now() + index })) 
-    : [{ id: Date.now(), description: "", rate: "", unit: "", amount: "" }]
-);
+setItems(
+      bill.items && bill.items.length > 0 
+        ? bill.items.map((i, index) => ({ 
+            ...i, 
+            id: i._id || i.id || Date.now() + index, 
+            isChecked: true,
+            isCustom: !activeMasterItems.some(m => m.itemId === i.description) 
+          })) 
+        : [{ id: Date.now(), description: "", rate: "", unit: "", amount: "", isChecked: true, isCustom: true }]
+    );
     setViewMode(false);
   };
 
@@ -439,13 +492,13 @@ const PatientsBilling = () => {
       return idB.localeCompare(idA, undefined, { numeric: true, sensitivity: 'base' });
     });
 
-    const q = billSearchTerm.trim().toLowerCase();
+    const q = billSearchTerm.trim();
     if (!q) return sorted;
 
     return sorted.filter((bill) => {
-      const name = (bill.fullName || '').toLowerCase();
-      const billNo = (bill.billNo || '').toLowerCase();
-      const phone = (bill.mobileNumber || '').toLowerCase();
+      const name = (bill.fullName || '');
+      const billNo = (bill.billNo || '');
+      const phone = (bill.mobileNumber || '');
       return name.includes(q) || billNo.includes(q) || phone.includes(q);
     });
   }, [savedBills, billSearchTerm]);
@@ -494,7 +547,14 @@ const PatientsBilling = () => {
          <h1 className={masterHeaderTitle}>Patient Billing & Invoice</h1>
         </div>
 
+   
         <div className={masterHeaderActionWrap}>
+          <button
+            type="button"
+            onClick={() => setShowItemMasterModal(true)}
+            className={`${masterPrimaryButton} ${masterHeaderFlexBtn}`}>
+          Item Master
+          </button>
           <button
             type="button"
             onClick={() => {
@@ -696,7 +756,7 @@ const PatientsBilling = () => {
 
                     <div className="sm:col-span-1">
                       <label className={masterInputLabel}>Dr. Name</label>
-                      <input type="text" name="drName" value={billingData.drName} onChange={handleHeaderChange} placeholder="Doctor Name" className={masterInput + " py-1 h-7"} />
+                      <input type="text" name="drName" value={billingData.drName} onChange={handleHeaderChange} placeholder="Doctor Name" className={masterInput} />
                     </div>
 
                     <div className="sm:col-span-1">
@@ -710,14 +770,28 @@ const PatientsBilling = () => {
                     </div>
 
                     <div className="sm:col-span-1">
-                      <label className={masterInputLabel}>Admission Date</label>
-                      <input type="date" name="admissionDate" value={billingData.admissionDate} onChange={handleHeaderChange} className={masterInput + " py-1 h-7"} />
-                    </div>
+                    <label className={masterInputLabel}>Admission Date</label>
+                    <input 
+                      type="date" 
+                      name="admissionDate" 
+                      value={billingData.admissionDate} 
+                      onChange={handleHeaderChange} 
+                      max={new Date().toISOString().split("T")[0]} 
+                      className={masterInput + " py-1 h-7"} 
+                    />
+                  </div>
 
-                    <div className="sm:col-span-1">
-                      <label className={masterInputLabel}>Discharge Date</label>
-                      <input type="date" name="dischargeDate" value={billingData.dischargeDate} onChange={handleHeaderChange} className={masterInput + " py-1 h-7"} />
-                    </div>
+                 <div className="sm:col-span-1">
+                    <label className={masterInputLabel}>Discharge Date</label>
+                    <input 
+                      type="date" 
+                      name="dischargeDate" 
+                      value={billingData.dischargeDate || new Date().toISOString().split("T")[0]} 
+                      onChange={handleHeaderChange} 
+                      max={new Date().toISOString().split("T")[0]} 
+                      className={masterInput + " py-1 h-7"} 
+                    />
+                  </div>
 
                     <div className="sm:col-span-1">
                       <label className={masterInputLabel}>Bill Date</label>
@@ -733,11 +807,26 @@ const PatientsBilling = () => {
                 </div>
               </div>
 
-              {/* SECTION 2 & 3: Description Section and Financial Summary */}
+          {/* SECTION 2 & 3: Description Section and Financial Summary */}
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-2">
                 <div className="lg:col-span-2 space-y-1">
-                  <div className="bg-[#1c5762] text-white px-2.5 py-1 rounded-t-md flex items-center justify-between font-bold text-xs shadow-sm">
-                    <span>Billing Services</span>
+               <div className="bg-[#1c5762] text-white px-2.5 py-1 rounded-t-md flex items-center justify-between font-bold text-xs shadow-sm">
+                  <span>Billing Services</span>
+                  <div className="flex items-center gap-1.5">
+                    {/* Refresh Button */}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        // Re-triggers the active items fetch function
+                        fetchActiveMasterItems(); 
+                        toast.success("Items refreshed successfully!");
+                      }}
+                      title="Refresh Master Items"
+                      className="p-1 bg-[#16444d] hover:bg-[#0f3239] text-white rounded transition-colors cursor-pointer inline-flex items-center justify-center"
+                    >
+                      <RefreshCw size={12} />
+                    </button>
+
                     <button
                       type="button"
                       onClick={handleAddItem}
@@ -746,13 +835,14 @@ const PatientsBilling = () => {
                       <Plus size={12} /> Add Item
                     </button>
                   </div>
+                </div>
 
                   <div className="border border-slate-200 rounded-b-md overflow-hidden bg-slate-50/50 p-1.5">
                     <table className="w-full text-left border-collapse">
                       <thead>
                         <tr className="bg-slate-200 text-slate-700 text-center text-[11px] font-bold">
-                          <th className="p-1 w-10">#</th>
-                          <th className="p-1 text-left">Description</th>
+                          <th className="p-1 w-10">Select</th>
+                          <th className="p-1 text-left">Description / Item Name</th>
                           <th className="p-1 w-24">Rate</th>
                           <th className="p-1 w-20">Unit</th>
                           <th className="p-1 w-28">Amount</th>
@@ -761,24 +851,66 @@ const PatientsBilling = () => {
                       </thead>
                       <tbody>
                         {items.map((item, index) => (
-                          <tr key={item.id} className="bg-white">
-                            <td className="p-1 text-center font-semibold text-slate-500">{index + 1}</td>
-                            <td className="p-1">
+                          <tr key={item.id} className={`bg-white ${item.isChecked ? 'bg-sky-50/40' : ''}`}>
+                            <td className="p-1 text-center">
                               <input 
-                                type="text" 
-                                value={item.description}
-                                onChange={(e) => handleItemChange(item.id, "description", e.target.value)}
-                                placeholder="Enter service description..."
-                                className={masterInput + " py-1 h-6 text-xs"}
+                                type="checkbox"
+                                checked={item.isChecked}
+                                onChange={(e) => {
+                                  const checked = e.target.checked;
+                                  setItems(prev => prev.map(i => i.id === item.id ? { ...i, isChecked: checked } : i));
+                                }}
+                                className="h-3.5 w-3.5 rounded border-slate-300 text-[#00b4d8] focus:ring-[#00b4d8] cursor-pointer"
                               />
                             </td>
+                       <td className="p-1">
+                          {item.isCustom || (item.description && !activeMasterItems.some(m => m.itemId === item.description)) ? (
+                            <input 
+                              type="text" 
+                              value={item.description}
+                              onChange={(e) => handleItemChange(item.id, "description", e.target.value)}
+                              placeholder="Type item description manually..."
+                              className={masterInput + " py-1 h-6 text-xs"}
+                            />
+                          ) : item.itemName && activeMasterItems.some(m => m.itemId === item.description) ? (
+                            <span className="font-semibold capitalize text-slate-800 text-xs px-1 flex items-center h-6">
+                              {item.itemName}
+                            </span>
+                          ) : (
+                            <select 
+                              value={item.description}
+                              onChange={(e) => {
+                                const selectedItem = activeMasterItems.find(i => i.itemId === e.target.value);
+                                const rateToSet = selectedItem ? selectedItem.rate : "";
+                                const nameToSet = selectedItem ? selectedItem.itemName : "";
+                                
+                                setItems(prev => prev.map(i => i.id === item.id ? {
+                                  ...i,
+                                  description: e.target.value,
+                                  itemName: nameToSet,
+                                  rate: rateToSet,
+                                  unit: 1,
+                                  amount: rateToSet * 1,
+                                  isChecked: true
+                                } : i));
+                              }}
+                              className={masterSelect + " py-1 h-6 text-xs"}
+                            >
+                              <option value="">-- Select Item from Master --</option>
+                              {activeMasterItems.map(masterItem => (
+                                <option key={masterItem._id} value={masterItem.itemId}>
+                                  {masterItem.itemName} - ₹{masterItem.rate}
+                                </option>
+                              ))}
+                            </select>
+                          )}
+                        </td>
                             <td className="p-1">
                               <input 
                                 type="number" 
                                 min="0"
                                 value={item.rate}
                                 onChange={(e) => handleItemChange(item.id, "rate", e.target.value)}
-                                placeholder=""
                                 className={masterInput + " py-1 h-6 text-right text-xs"}
                               />
                             </td>
@@ -788,7 +920,6 @@ const PatientsBilling = () => {
                                 min="0"
                                 value={item.unit}
                                 onChange={(e) => handleItemChange(item.id, "unit", e.target.value)}
-                                placeholder=""
                                 className={masterInput + " py-1 h-6 text-right text-xs"}
                               />
                             </td>
@@ -797,7 +928,6 @@ const PatientsBilling = () => {
                                 type="number" 
                                 value={item.amount}
                                 readOnly
-                                placeholder=""
                                 className={masterInput + " py-1 h-6 text-right bg-slate-100 font-bold text-xs"}
                               />
                             </td>
@@ -838,7 +968,6 @@ const PatientsBilling = () => {
                           name="discount" 
                           value={billingData.discount} 
                           onChange={handleHeaderChange} 
-                          placeholder=""
                           className="w-24 px-2 py-0.5 text-right border border-slate-300 rounded text-xs focus:ring-1 focus:ring-[#00b4d8]"
                         />
                       </div>
@@ -856,7 +985,6 @@ const PatientsBilling = () => {
                           name="advanced" 
                           value={billingData.advanced} 
                           onChange={handleHeaderChange} 
-                          placeholder=""
                           className="w-24 px-2 py-0.5 text-right border border-slate-300 rounded text-xs focus:ring-1 focus:ring-[#00b4d8]"
                         />
                       </div>
@@ -869,7 +997,6 @@ const PatientsBilling = () => {
                           name="returnAmount" 
                           value={advancedVal > netAmount ? ((advancedVal - netAmount) + returnVal) : billingData.returnAmount} 
                           onChange={handleHeaderChange} 
-                          placeholder=""
                           className="w-24 px-2 py-0.5 text-right border border-slate-300 rounded text-xs focus:ring-1 focus:ring-[#00b4d8]"
                         />
                       </div>
@@ -881,11 +1008,10 @@ const PatientsBilling = () => {
                     </div>
 
                     <div className="text-slate-500 text-[11px] px-1">
-                      <p><strong>Total Items:</strong> {items.length}</p>
+                      <p><strong>Total Items Checked:</strong> {items.filter(i => i.isChecked).length}</p>
                     </div>
                   </div>
                 </div>
-
               </div>
 
               {/* Action Buttons */}
@@ -926,6 +1052,30 @@ const PatientsBilling = () => {
         </div>
       </main>
 
+      {showItemMasterModal && (
+        <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
+          <div className="bg-[#f0f6fa] rounded-lg shadow-xl w-full max-w-6xl overflow-hidden flex flex-col max-h-[90vh]">
+            
+            {/* Modal Top Bar */}
+            <div className="bg-[#1c5762] text-white px-4 py-2 flex justify-between items-center font-bold text-xs flex-shrink-0">
+              <span>Item Master Page Integration</span>
+              <button 
+                type="button" 
+                onClick={() => setShowItemMasterModal(false)}
+                className="text-white hover:text-rose-200 text-sm font-bold cursor-pointer"
+              >
+                ✕ Close
+              </button>
+            </div>
+
+            {/* Modal Body rendering your existing ItemMaster component */}
+            <div className="overflow-y-auto flex-1 p-2">
+              <ItemMaster />
+            </div>
+
+          </div>
+        </div>
+      )}
       {/* Hidden Printable Bill Format Container */}
       <div id="printable-bill-section" className="hidden print:block font-sans text-[10px] text-black bg-white p-2 leading-tight">
         {/* Header Section */}
