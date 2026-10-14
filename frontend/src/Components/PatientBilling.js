@@ -819,7 +819,7 @@ setItems(
                       onClick={() => {
                         // Re-triggers the active items fetch function
                         fetchActiveMasterItems(); 
-                        toast.success("Items refreshed successfully!");
+                        toast.success("Items refreshed successfully!", { id: 'avail-qty-err' });
                       }}
                       title="Refresh Master Items"
                       className="p-1 bg-[#16444d] hover:bg-[#0f3239] text-white rounded transition-colors cursor-pointer inline-flex items-center justify-center"
