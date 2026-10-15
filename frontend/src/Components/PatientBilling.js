@@ -97,10 +97,10 @@ const fetchActiveMasterItems = async () => {
         const activeList = (res.data.data || []).filter(i => i.status === 'Active');
         setActiveMasterItems(activeList);
 
-        // Automatically populate all active master items as rows with default unit = 1 and unchecked by default
+        // 👈 This forces all active items to populate as rows (Image 1 style)
         const initialTableItems = activeList.map((masterItem, idx) => ({
           id: masterItem._id || idx,
-          description: masterItem.itemId, // Stores Item ID (e.g. ITEM-1) in database
+          description: masterItem.itemName, 
           itemName: masterItem.itemName,
           rate: masterItem.rate,
           unit: 1,
@@ -173,6 +173,7 @@ const fetchActiveMasterItems = async () => {
     billDate: getCurrentISTDate(),
     cabinNo: "",
     wardNo: "",
+    bedNo: "",
     discount: "",
     advanced: "",
     returnAmount: "",
@@ -219,17 +220,16 @@ const fetchActiveMasterItems = async () => {
     if (!searchTerm.trim()) {
       setFilteredPatients(patients);
     } else {
-      const term = searchTerm;
+      const term = searchTerm.toLowerCase();
       const results = patients.filter(p => 
-        (p.fullName && p.fullName.includes(term)) ||
-        (p.patientId && p.patientId.includes(term)) ||
-        (p.mobileNumber && p.mobileNumber.includes(term))
+        (p.fullName && p.fullName.toLowerCase().includes(term)) ||
+        (p.patientId && p.patientId.toLowerCase().includes(term))
       );
       setFilteredPatients(results);
     }
   }, [searchTerm, patients]);
 
-  const handleSelectPatient = (patient) => {
+const handleSelectPatient = (patient) => {
     const vill = patient.villageTown || patient.villTown || "";
     const po = patient.postOffice || patient.po || "";
     const ps = patient.policeStation || patient.ps || "";
@@ -255,6 +255,17 @@ const fetchActiveMasterItems = async () => {
     setShowDropdown(false);
   };
 
+
+  const getItemDisplayName = (item) => {
+    if (item.isCustom || !item.description) {
+      return item.description || item.itemName || '-';
+    }
+    const foundMaster = activeMasterItems.find(
+      m => m.itemId === item.description || m.itemName === item.description
+    );
+    return foundMaster ? foundMaster.itemName : (item.itemName || item.description);
+  };
+
   const handleHeaderChange = (e) => {
     const { name, value } = e.target;
     if (["discount", "advanced", "returnAmount"].includes(name) && value !== "" && parseFloat(value) < 0) {
@@ -268,6 +279,7 @@ const fetchActiveMasterItems = async () => {
       return;
     }
 
+    
     setItems(prevItems =>
       prevItems.map(item => {
         if (item.id === id || item._id === id) {
@@ -359,7 +371,9 @@ const handleAddItem = () => {
         items: items
           .filter(i => i.isChecked)
           .map(i => ({
-            ...i,
+            description: i.description,
+            itemName: i.itemName || i.description,
+            isCustom: i.isCustom || false,
             rate: i.rate === "" ? 0 : Number(i.rate),
             unit: i.unit === "" ? 1 : Number(i.unit),
             amount: i.amount === "" ? 0 : Number(i.amount)
@@ -425,6 +439,7 @@ const handleAddItem = () => {
       billDate: bill.billDate || getCurrentISTDate(),
       cabinNo: bill.cabinNo || "",
       wardNo: bill.wardNo || "",
+      bedNo: bill.bedNo || "",
       discount: bill.discount || "",
       advanced: bill.advanced || "",
       returnAmount: bill.returnAmount || "",
@@ -460,7 +475,7 @@ setItems(
     }
   };
 
-  const handleReset = () => {
+const handleReset = () => {
     setSearchTerm("");
     setEditingBillId(null);
     setBillingData({
@@ -478,11 +493,27 @@ setItems(
       billDate: getCurrentISTDate(),
       cabinNo: "",
       wardNo: "",
+      bedNo: "",
       discount: "",
       advanced: "",
       returnAmount: "",
     });
-    setItems([{ id: 1, description: "", rate: "", unit: "", amount: "" }]);
+    
+    // 👈 Re-populate active master items as rows instead of a blank dropdown
+    if (activeMasterItems.length > 0) {
+      const initialTableItems = activeMasterItems.map((masterItem, idx) => ({
+        id: masterItem._id || idx,
+        description: masterItem.itemName,
+        itemName: masterItem.itemName,
+        rate: masterItem.rate,
+        unit: 1,
+        amount: masterItem.rate * 1,
+        isChecked: false,
+      }));
+      setItems(initialTableItems);
+    } else {
+      setItems([{ id: 1, description: "", rate: "", unit: "", amount: "", isChecked: true }]);
+    }
   };
 
   const filteredBills = useMemo(() => {
@@ -538,16 +569,63 @@ setItems(
         }
       `}</style>
 
-      {/* Header Bar */}
-<header className={masterHeaderResponsive}>
-  <div className="flex items-center gap-2">
-    <div className={masterHeaderIconBox}>
+      <header className={masterHeaderResponsive}>
+        <div className="flex items-center gap-2">
+          <div className={masterHeaderIconBox}>
             <FileText size={15} />
           </div>
-         <h1 className={masterHeaderTitle}>Patient Billing & Invoice</h1>
+          <h1 className={masterHeaderTitle}>Patient Billing & Invoice</h1>
         </div>
 
-   
+        {/* 👈 Hide search bar when viewMode is true */}
+        {!viewMode && (
+          <div className="relative w-72" ref={searchRef}>
+            <div className="relative flex items-center">
+              <input 
+                type="text" 
+                value={searchTerm}
+                onChange={(e) => {
+                  setSearchTerm(e.target.value);
+                  setShowDropdown(true);
+                }}
+                onFocus={() => setShowDropdown(true)}
+                placeholder="Search by Patient ID or Name..."
+                className={masterInput + " py-1 h-7 pl-7 pr-7 w-full bg-white text-slate-900"}
+              />
+              <Search className="absolute left-2 top-2 text-slate-400 pointer-events-none" size={13} />
+              
+              {/* Clear / Cross Icon */}
+              {searchTerm && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSearchTerm("");
+                    setShowDropdown(false);
+                  }}
+                  className="absolute right-2 top-1.5 text-slate-400 hover:text-slate-600 cursor-pointer"
+                >
+                  ✕
+                </button>
+              )}
+            </div>
+
+            {showDropdown && filteredPatients.length > 0 && (
+              <div className="absolute z-50 left-0 mt-1 w-full min-w-[300px] bg-white border border-slate-300 rounded-md shadow-lg max-h-60 overflow-y-auto">
+                {filteredPatients.map(p => (
+                  <div 
+                    key={p._id}
+                    onClick={() => handleSelectPatient(p)}
+                    className="px-2.5 py-1.5 hover:bg-sky-50 cursor-pointer border-b border-slate-100 flex justify-between items-center text-[11px]"
+                  >
+                    <span className="font-bold text-sky-700">{p.patientId}</span>
+                    <span className="text-slate-800 font-medium">{p.namePrefix} {p.fullName}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
         <div className={masterHeaderActionWrap}>
           <button
             type="button"
@@ -565,7 +643,7 @@ setItems(
                 fetchSavedBills();
               }
             }}
-           className={`${masterAccentButton} ${masterHeaderFlexBtn}`}
+          className={`${masterAccentButton} ${masterHeaderFlexBtn}`}
           >
             {viewMode ? <ArrowLeft size={13} /> : <Eye size={13} />} 
             {viewMode ? "Back to Form" : "View Bill"}
@@ -574,7 +652,7 @@ setItems(
           <button
             type="button"
             onClick={() => window.location.href = "/dashboard"}
-           className={`${masterPrimaryButton} ${masterHeaderFlexBtn}`}
+          className={`${masterPrimaryButton} ${masterHeaderFlexBtn}`}
           >
             <Home size={13} /> Home
           </button>
@@ -694,40 +772,17 @@ setItems(
 
                 <div className="p-2">
                   <div className="grid grid-cols-1 sm:grid-cols-6 gap-1.5 relative">
-                    
-                    <div className="sm:col-span-1 relative" ref={searchRef}>
-                      <label className={masterInputLabel}>Patients Name</label>
-                      <div className="relative">
-                        <input 
-                          type="text" 
-                          value={searchTerm}
-                          onChange={(e) => {
-                            setSearchTerm(e.target.value);
-                            setShowDropdown(true);
-                          }}
-                          onFocus={() => setShowDropdown(true)}
-                          placeholder="Type name, ID or phone..."
-                          className={masterInput + " py-1 h-7 pr-7 w-full"}
-                        />
-                        <Search className="absolute right-2 top-2 text-slate-400 pointer-events-none" size={13} />
-                      </div>
-
-                      {showDropdown && filteredPatients.length > 0 && (
-                        <div className="absolute z-50 left-0 mt-1 w-full min-w-[280px] bg-white border border-slate-300 rounded-md shadow-lg max-h-60 overflow-y-auto">
-                          {filteredPatients.map(p => (
-                            <div 
-                              key={p._id}
-                              onClick={() => handleSelectPatient(p)}
-                              className="px-2.5 py-1.5 hover:bg-sky-50 cursor-pointer border-b border-slate-100 flex justify-between items-center text-[11px]"
-                            >
-                              <span className="font-bold text-sky-700">{p.patientId}</span>
-                              <span className="text-slate-800 font-medium">{p.namePrefix} {p.fullName}</span>
-                              <span className="text-slate-500">Ph: {p.mobileNumber}</span>
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                    </div>
+               <div className="sm:col-span-1">
+                <label className={masterInputLabel}>Patients Name</label>
+                <input 
+                  type="text" 
+                  name="fullName" 
+                  value={billingData.fullName} 
+                  readOnly 
+                  placeholder="Name" 
+                  className={masterInput + " py-1 h-7 bg-slate-100 font-semibold"} 
+                />
+              </div>
 
                     <div className="sm:col-span-1">
                       <label className={masterInputLabel}>Patient ID</label>
@@ -768,6 +823,10 @@ setItems(
                       <label className={masterInputLabel}>Ward No</label>
                       <input type="text" name="wardNo" value={billingData.wardNo} onChange={handleHeaderChange} placeholder="Ward No" className={masterInput + " py-1 h-7"} />
                     </div>
+                    <div className="sm:col-span-1">
+                      <label className={masterInputLabel}>Bed No</label>
+                      <input type="text" name="bedNo" value={billingData.bedNo} onChange={handleHeaderChange} placeholder="Bed No" className={masterInput + " py-1 h-7"} />
+                    </div>
 
                     <div className="sm:col-span-1">
                     <label className={masterInputLabel}>Admission Date</label>
@@ -798,7 +857,7 @@ setItems(
                       <input type="date" name="billDate" value={billingData.billDate} onChange={handleHeaderChange} className={masterInput + " py-1 h-7"} />
                     </div>
 
-                    <div className="sm:col-span-6">
+                    <div className="sm:col-span-5">
                       <label className={masterInputLabel}>Address</label>
                       <input type="text" name="address" value={billingData.address} readOnly placeholder="Auto-populated Full Address" className={masterInput + " py-1 h-7 bg-slate-100"} />
                     </div>
@@ -1024,7 +1083,6 @@ setItems(
                 >
                   <RotateCcw size={12} /> Reset
                 </button>
-
                 <button 
                   type="button" 
                   onClick={(e) => handleSubmit(e, false)} 
@@ -1129,9 +1187,9 @@ setItems(
 
             {/* Right Column */}
             <div className="space-y-0.5">
-              <div className="grid grid-cols-[100px_10px_1fr]">
+              {/* <div className="grid grid-cols-[100px_10px_1fr]">
                 <span className="font-semibold">Patient ID</span><span>:</span><span className="font-medium">{activePrintInv.patientId || '-'}</span>
-              </div>
+              </div> */}
                <div className="grid grid-cols-[100px_10px_1fr]">
                 <span className="font-semibold">Reg No</span><span>:</span><span className="font-medium">{activePrintInv.regNo || '-'}</span>
               </div>
@@ -1150,6 +1208,9 @@ setItems(
              
               <div className="grid grid-cols-[100px_10px_1fr]">
                 <span className="font-semibold">Cabin No</span><span>:</span><span className="font-medium">{activePrintInv.cabinNo || '-'}</span>
+              </div>
+                <div className="grid grid-cols-[100px_10px_1fr]">
+                <span className="font-semibold">Bed No</span><span>:</span><span className="font-medium">{activePrintInv.bedNo || '-'}</span>
               </div>
             </div>
 
@@ -1176,7 +1237,9 @@ setItems(
             {activePrintInv.items?.map((item, idx) => (
               <tr key={idx} className="border-b-0">
                 <td className="border-r border-black p-1 align-top font-semibold">{idx + 1}</td>
-                <td className="border-r border-black p-1 text-left px-2 align-top font-semibold">{item.description || '-'}</td>
+                <td className="border-r border-black p-1 text-left px-2 align-top font-semibold">
+                    {getItemDisplayName(item)}
+                  </td>
                 <td className="border-r border-black p-1 align-top font-semibold text-right">{Number(item.rate || 0).toFixed(2)}</td>
                 <td className="border-r border-black p-1 align-top font-semibold text-center">{item.unit || 1}</td>
                 <td className="p-1 align-top font-semibold text-right">{Number(item.amount || 0).toFixed(2)}</td>

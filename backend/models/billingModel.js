@@ -2,6 +2,8 @@ const mongoose = require('mongoose');
 
 const billingItemSchema = new mongoose.Schema({
   description: { type: String, required: true },
+  itemName: { type: String },   
+  isCustom: { type: Boolean },
   rate: { type: Number, required: true },
   unit: { type: Number, required: true, default: 1 },
   amount: { type: Number, required: true }
@@ -23,6 +25,7 @@ const billingSchema = new mongoose.Schema({
   billDate: { type: String, required: true },
   cabinNo: { type: String },
   wardNo: { type: String },
+  bedNo: { type: String },
   
   // Line items
   items: [billingItemSchema],
