@@ -169,7 +169,7 @@ const fetchActiveMasterItems = async () => {
     drName: "",
     address: "",
     admissionDate: "",
-    dischargeDate: "",
+    dischargeDate: getCurrentISTDate(),
     billDate: getCurrentISTDate(),
     cabinNo: "",
     wardNo: "",
@@ -843,7 +843,7 @@ const handleReset = () => {
 
                  <div className="sm:col-span-1">
                     <label className={masterInputLabel}>Discharge Date</label>
-                    <input 
+                  <input 
                       type="date" 
                       name="dischargeDate" 
                       value={billingData.dischargeDate || new Date().toISOString().split("T")[0]} 

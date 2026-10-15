@@ -44,7 +44,7 @@ exports.createBilling = async (req, res) => {
       regNo,
       age,
       drName,
-      address,
+      address, 
       admissionDate,
       dischargeDate,
       billDate,
