@@ -523,13 +523,14 @@ const handleReset = () => {
       return idB.localeCompare(idA, undefined, { numeric: true, sensitivity: 'base' });
     });
 
-    const q = billSearchTerm.trim();
+    const q = billSearchTerm.trim().toLowerCase();
     if (!q) return sorted;
 
     return sorted.filter((bill) => {
-      const name = (bill.fullName || '');
-      const billNo = (bill.billNo || '');
-      const phone = (bill.mobileNumber || '');
+      const name = String(bill.fullName || '').toLowerCase();
+      const billNo = String(bill.billNo || '').toLowerCase();
+      const phone = String(bill.mobileNumber || '').toLowerCase();
+      
       return name.includes(q) || billNo.includes(q) || phone.includes(q);
     });
   }, [savedBills, billSearchTerm]);

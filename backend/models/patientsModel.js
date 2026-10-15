@@ -21,7 +21,7 @@ const patientSchema = new mongoose.Schema({
   bloodGroup: { type: String },
   department: { type: String },
   emergencyContactName: { type: String },
-  emergencyContactNumber: { type: String },
+  emergencyNumber: { type: String },
   // Kin Details
   kinName: { type: String },
   kinPhone: { type: String },

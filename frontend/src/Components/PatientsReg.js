@@ -358,20 +358,21 @@ const PatientsReg = () => {
 
 
 
-  const filteredData = useMemo(() => {
+const filteredData = useMemo(() => {
     const sortedList = [...patientsList].sort((a, b) => {
       const idA = String(a.patientId || a._id || '');
       const idB = String(b.patientId || b._id || '');
       return idB.localeCompare(idA, undefined, { numeric: true, sensitivity: 'base' });
     });
 
-    const q = searchTerm.trim();
+    const q = searchTerm.trim().toLowerCase();
     if (!q) return sortedList;
 
     return sortedList.filter((item) => {
-      const fullName = (item.fullName || '');
-      const patientId = (item.patientId || '');
-      const mobileNumber = (item.mobileNumber || '');
+      const fullName = String(item.fullName || '').toLowerCase();
+      const patientId = String(item.patientId || '').toLowerCase();
+      const mobileNumber = String(item.mobileNumber || '').toLowerCase();
+      
       return fullName.includes(q) || patientId.includes(q) || mobileNumber.includes(q);
     });
   }, [patientsList, searchTerm]);
